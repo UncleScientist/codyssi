@@ -15,6 +15,10 @@ pub fn run() -> Result<(), Error> {
         "  part 2 = {}",
         lines.iter().map(compress).map(units).sum::<isize>()
     );
+    println!(
+        "  part 3 = {}",
+        lines.iter().map(rle).map(units).sum::<isize>()
+    );
 
     Ok(())
 }
@@ -35,13 +39,36 @@ fn units<S: AsRef<str>>(s: S) -> isize {
 }
 
 fn compress<S: AsRef<str>>(s: S) -> String {
-    let keep = s.as_ref().len() / 10;
+    let len = s.as_ref().len();
+    let keep = len / 10;
     format!(
         "{}{}{}",
         &s.as_ref()[0..keep],
-        s.as_ref().len() - keep * 2,
-        &s.as_ref()[s.as_ref().len() - keep..]
+        len - keep * 2,
+        &s.as_ref()[len - keep..]
     )
+}
+
+fn rle<S: AsRef<str>>(s: S) -> String {
+    let mut result = String::from("");
+    if !s.as_ref().is_empty() {
+        let mut cur = None;
+        let mut count = 0;
+        for ch in s.as_ref().chars() {
+            if cur == Some(ch) {
+                count += 1;
+                continue;
+            } else if let Some(c) = cur {
+                result.push_str(&format!("{count}"));
+                result.push(c);
+            }
+            cur = Some(ch);
+            count = 1;
+        }
+        result.push_str(&format!("{count}"));
+        result.push(cur.unwrap());
+    }
+    result
 }
 
 #[cfg(test)]
@@ -56,5 +83,13 @@ mod test {
     #[test]
     fn test_compression_20() {
         assert_eq!("NN20MM".to_string(), compress("NNBUSSSSSDSSZZZZMMMMMMMM"));
+    }
+
+    #[test]
+    fn test_rle() {
+        assert_eq!(
+            "2N1B1U5S1D2S4Z8M".to_string(),
+            rle("NNBUSSSSSDSSZZZZMMMMMMMM")
+        );
     }
 }

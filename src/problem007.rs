@@ -36,10 +36,41 @@ pub fn run() -> Result<(), Error> {
             .sum::<i64>()
     );
 
+    println!(
+        "  part 3 = {}",
+        boxen
+            .windows(4)
+            .enumerate()
+            .filter_map(|(idx, set)| if idx % 2 == 0 { Some(set) } else { None })
+            .map(merge_and_sum)
+            .max()
+            .unwrap()
+    );
+
     Ok(())
 }
 
-#[derive(Debug, PartialEq, Eq)]
+fn merge_and_sum(list: &[BoxRange]) -> i64 {
+    let mut boxlist: Vec<BoxRange> = list.to_vec();
+    let mut idx = 0;
+    while idx < boxlist.len() - 1 {
+        let mut merged = false;
+        for next in idx + 1..boxlist.len() {
+            if boxlist[idx].overlaps(&boxlist[next]) {
+                boxlist[idx] = boxlist[idx].merge(&boxlist[next]);
+                boxlist.remove(next);
+                merged = true;
+                break;
+            }
+        }
+        if !merged {
+            idx += 1;
+        }
+    }
+    boxlist.iter().map(|b| b.count()).sum()
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 struct BoxRange {
     min: i64,
     max: i64,

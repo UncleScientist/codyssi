@@ -15,17 +15,29 @@ pub fn run() -> Result<(), Error> {
         .map(|line| line.parse::<PriceOp>().unwrap())
         .rev()
         .collect::<Vec<_>>();
-    println!("{ops:?}");
+    let price = |num: i64| ops.iter().fold(num, |num, op| op.apply(num));
 
     let mut nums = lines[3..]
         .iter()
         .map(|line| line.parse::<i64>().unwrap())
         .collect::<Vec<_>>();
     nums.sort();
+
+    // Part 1
     let median = nums[nums.len() / 2];
+    println!("  part 1 = {}", price(median));
+
+    // Part 2
+    let evens = nums.iter().filter(|num| *num % 2 == 0).sum::<i64>();
+    println!("  part 2 = {}", price(evens));
+
+    const MAX_PRICE: i64 = 15000000000000;
     println!(
-        "  part 1 = {}",
-        ops.iter().fold(median, |result, op| op.apply(result))
+        "  part 3 = {}",
+        nums.iter()
+            .filter(|num| price(**num) <= MAX_PRICE)
+            .max()
+            .unwrap()
     );
 
     Ok(())

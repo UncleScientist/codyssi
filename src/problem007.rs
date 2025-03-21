@@ -24,10 +24,22 @@ pub fn run() -> Result<(), Error> {
         boxen.iter().map(|boxlist| boxlist.count()).sum::<i64>()
     );
 
+    println!(
+        "  part 2 = {}",
+        boxen
+            .chunks(2)
+            .map(|pair| if pair[0].overlaps(&pair[1]) {
+                pair[0].merge(&pair[1]).count()
+            } else {
+                pair[0].count() + pair[1].count()
+            })
+            .sum::<i64>()
+    );
+
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct BoxRange {
     min: i64,
     max: i64,
@@ -36,6 +48,18 @@ struct BoxRange {
 impl BoxRange {
     fn count(&self) -> i64 {
         self.max - self.min + 1
+    }
+
+    fn overlaps(&self, other: &Self) -> bool {
+        let smaller_max = self.max.min(other.max);
+        let larger_min = self.min.max(other.min);
+        larger_min <= smaller_max
+    }
+
+    fn merge(&self, other: &Self) -> Self {
+        let min = self.min.min(other.min);
+        let max = self.max.max(other.max);
+        Self { min, max }
     }
 }
 
@@ -53,5 +77,31 @@ impl FromStr for BoxRange {
             return Err(format!("Unable to parse '{max}'"));
         };
         Ok(BoxRange { min, max })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_overlapping_ranges() {
+        let b1: BoxRange = "8-9".parse().unwrap();
+        let b2: BoxRange = "9-10".parse().unwrap();
+        assert!(b1.overlaps(&b2));
+    }
+
+    #[test]
+    fn test_overlaps_completely() {
+        let b1: BoxRange = "8-9".parse().unwrap();
+        let b2: BoxRange = "4-20".parse().unwrap();
+        assert!(b1.overlaps(&b2));
+    }
+
+    #[test]
+    fn test_merge() {
+        let b1: BoxRange = "4-9".parse().unwrap();
+        let b2: BoxRange = "8-20".parse().unwrap();
+        assert_eq!(BoxRange { min: 4, max: 20 }, b1.merge(&b2));
     }
 }

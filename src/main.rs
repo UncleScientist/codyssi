@@ -1,6 +1,5 @@
-mod puzzle1;
+mod problem005;
 
 fn main() {
-    println!("Puzzle 1: Compass Calibration");
-    crate::puzzle1::run();
+    let _ = crate::problem005::run();
 }

@@ -1,5 +1,9 @@
-pub fn run() {
-    let data = std::fs::read_to_string("input/puzzle1.txt").unwrap();
+use std::io::Error;
+
+pub fn run() -> Result<(), Error> {
+    let data = std::fs::read_to_string("input/problem005.txt")?;
+
+    println!("Puzzle 5: Compass Calibration");
 
     let mut lines = data.split('\n').collect::<Vec<_>>();
     lines.pop();
@@ -62,4 +66,5 @@ pub fn run() {
                 }
             })
     );
+    Ok(())
 }

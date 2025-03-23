@@ -1,4 +1,4 @@
-use std::{collections::HashSet, io::Error, str::FromStr};
+use std::io::Error;
 
 pub fn run() -> Result<(), Error> {
     let data = std::fs::read_to_string("input/problem010.txt")?;
@@ -14,6 +14,18 @@ pub fn run() -> Result<(), Error> {
     println!(
         "  part 1 = {}",
         lines[0].chars().filter(|ch| ch.is_alphabetic()).count()
+    );
+
+    println!(
+        "  part 2 = {}",
+        lines[0]
+            .chars()
+            .map(|ch| match ch {
+                'a'..='z' => (ch as u8 - b'a') as usize + 1,
+                'A'..='Z' => (ch as u8 - b'A') as usize + 27,
+                _ => 0,
+            })
+            .sum::<usize>()
     );
 
     Ok(())

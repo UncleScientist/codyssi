@@ -18,5 +18,19 @@ pub fn run() -> Result<(), Error> {
             .sum::<usize>()
     );
 
+    println!(
+        "  part 2 = {}",
+        lines
+            .chunks(2)
+            .enumerate()
+            .map(|(idx, pair)| if idx % 2 == 0 {
+                pair[0] == "TRUE" && pair[1] == "TRUE"
+            } else {
+                pair[0] == "TRUE" || pair[1] == "TRUE"
+            })
+            .filter(|val| *val)
+            .count()
+    );
+
     Ok(())
 }

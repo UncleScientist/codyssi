@@ -45,6 +45,21 @@ pub fn run() -> Result<(), Error> {
         }
     }
     println!("  part 2 = {}", visited.len());
+
+    let mut queue = VecDeque::new();
+    queue.push_back(("STT".to_string(), 0));
+    let mut visited = HashSet::new();
+    let mut total_time = 0;
+    while let Some((loc, time)) = queue.pop_front() {
+        if visited.insert(loc.clone()) {
+            total_time += time;
+            for neighbor in &locations[&loc] {
+                queue.push_back((neighbor.clone(), time + 1));
+            }
+        }
+    }
+    println!("  part 3 = {total_time}");
+
     Ok(())
 }
 

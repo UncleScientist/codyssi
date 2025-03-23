@@ -30,7 +30,7 @@ pub fn run() -> Result<(), Error> {
     while num > 0 {
         let unit = num % 65;
         result.push(num_to_char[unit]);
-        num = num / 65;
+        num /= 65;
     }
 
     println!("  part 3 = {}", result.iter().rev().collect::<String>());

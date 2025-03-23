@@ -17,18 +17,25 @@ pub fn run() -> Result<(), Error> {
 
     let dists = points
         .iter()
-        .map(|point| point.dist_to_origin())
+        .map(|point| (point, point.dist_to_origin()))
         .collect::<Vec<_>>();
 
-    println!(
-        "  part 1 = {}",
-        dists.iter().max().unwrap() - dists.iter().min().unwrap()
-    );
+    let closest = dists.iter().min_by_key(|point| point.1).unwrap();
+    let furthest = dists.iter().max_by_key(|point| point.1).unwrap();
+    println!("  part 1 = {}", furthest.1 - closest.1);
+
+    let closest_to_closest = points
+        .iter()
+        .filter(|point| *point != closest.0)
+        .map(|point| (point, point.dist(closest.0)))
+        .min_by_key(|(_, dist)| *dist)
+        .unwrap();
+    println!("  part 2 = {}", closest_to_closest.1);
 
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Point {
     x: i64,
     y: i64,
@@ -37,6 +44,10 @@ struct Point {
 impl Point {
     fn dist_to_origin(&self) -> i64 {
         self.x.abs() + self.y.abs()
+    }
+
+    fn dist(&self, other: &Self) -> i64 {
+        (self.x - other.x).abs() + (self.y - other.y).abs()
     }
 }
 

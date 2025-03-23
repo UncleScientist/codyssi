@@ -7,8 +7,10 @@ mod problem006;
 mod problem007;
 mod problem008;
 mod problem009;
+mod problem010;
 
 fn main() {
+    let _ = crate::problem010::run();
     let _ = crate::problem009::run();
     let _ = crate::problem008::run();
     let _ = crate::problem007::run();

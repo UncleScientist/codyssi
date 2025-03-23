@@ -9,28 +9,43 @@ pub fn run() -> Result<(), Error> {
         .split('\n')
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>();
+    let sensors = lines.iter().map(|text| *text == "TRUE").collect::<Vec<_>>();
+
     println!(
         "  part 1 = {}",
-        lines
+        sensors
             .iter()
             .enumerate()
-            .filter_map(|(idx, val)| if *val == "TRUE" { Some(idx + 1) } else { None })
+            .filter_map(|(idx, val)| if *val { Some(idx + 1) } else { None })
             .sum::<usize>()
     );
 
+    let layer = |(idx, pair): (usize, &[bool])| {
+        if idx % 2 == 0 {
+            pair[0] && pair[1]
+        } else {
+            pair[0] || pair[1]
+        }
+    };
+
     println!(
         "  part 2 = {}",
-        lines
+        sensors
             .chunks(2)
             .enumerate()
-            .map(|(idx, pair)| if idx % 2 == 0 {
-                pair[0] == "TRUE" && pair[1] == "TRUE"
-            } else {
-                pair[0] == "TRUE" || pair[1] == "TRUE"
-            })
+            .map(layer)
             .filter(|val| *val)
             .count()
     );
+
+    let mut cur = sensors.clone();
+    let mut total = cur.iter().filter(|v| **v).count();
+    while cur.len() > 1 {
+        let next_layer = cur.chunks(2).enumerate().map(layer).collect::<Vec<_>>();
+        total += next_layer.iter().filter(|v| **v).count();
+        cur = next_layer;
+    }
+    println!("  part 3 = {total}");
 
     Ok(())
 }

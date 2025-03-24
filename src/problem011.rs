@@ -42,5 +42,16 @@ pub fn run() -> Result<(), Error> {
     }
     println!("  part 2 = {}", part2[test_index]);
 
+    let mut part3 = freqs.clone();
+    for (x, y) in &swaps {
+        let (x, y) = (*x.min(y), *x.max(y));
+        for i in 0..swaps.len() {
+            if x + i < y && y + i < part3.len() {
+                part3.swap(x + i, y + i);
+            }
+        }
+    }
+    println!("  part 3 = {}", part3[test_index]);
+
     Ok(())
 }

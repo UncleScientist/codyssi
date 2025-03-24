@@ -13,58 +13,29 @@ pub fn run() -> Result<(), Error> {
         .map(|num| num.parse::<i64>().unwrap())
         .collect::<Vec<_>>();
 
-    println!(
-        "  part 1 = {}",
-        nums.iter()
-            .skip(1)
-            .zip(ops.chars())
-            .fold(nums[0], |total, (num, op)| {
-                if op == '+' {
-                    total + num
-                } else if op == '-' {
-                    total - num
-                } else {
-                    panic!("invalid op {op}");
-                }
-            })
-    );
-
-    println!(
-        "  part 2 = {}",
-        nums.iter()
-            .skip(1)
-            .zip(ops.chars().rev())
-            .fold(nums[0], |total, (num, op)| {
-                if op == '+' {
-                    total + num
-                } else if op == '-' {
-                    total - num
-                } else {
-                    panic!("invalid op {op}");
-                }
-            })
-    );
-
     let bignums = nums
         .chunks(2)
         .map(|nvec| nvec[0] * 10 + nvec[1])
         .collect::<Vec<_>>();
 
-    println!(
-        "  part 3 = {}",
-        bignums
-            .iter()
-            .skip(1)
-            .zip(ops.chars().rev())
-            .fold(bignums[0], |total, (num, op)| {
-                if op == '+' {
-                    total + num
-                } else if op == '-' {
-                    total - num
-                } else {
-                    panic!("invalid op {op}");
-                }
-            })
-    );
+    println!("  part 1 = {}", calc(&nums, ops.chars()));
+    println!("  part 2 = {}", calc(&nums, ops.chars().rev()));
+    println!("  part 3 = {}", calc(&bignums, ops.chars().rev()));
+
     Ok(())
+}
+
+fn calc<I: Iterator<Item = char>>(nums: &[i64], iter: I) -> i64 {
+    nums.iter()
+        .skip(1)
+        .zip(iter)
+        .fold(nums[0], |total, (num, op)| {
+            if op == '+' {
+                total + num
+            } else if op == '-' {
+                total - num
+            } else {
+                panic!("invalid op {op}");
+            }
+        })
 }

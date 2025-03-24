@@ -10,7 +10,7 @@ pub fn run() -> Result<(), Error> {
         .split("\n\n")
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>();
-    let mut freqs = sections[0]
+    let freqs = sections[0]
         .split('\n')
         .map(|freq| freq.parse::<isize>().unwrap())
         .collect::<Vec<_>>();
@@ -26,10 +26,21 @@ pub fn run() -> Result<(), Error> {
         .collect::<Vec<_>>();
     let test_index = sections[2].trim().parse::<usize>().unwrap() - 1;
 
+    let mut part1 = freqs.clone();
     for swap in &swaps {
-        freqs.swap(swap.0, swap.1);
+        part1.swap(swap.0, swap.1);
     }
-    println!("  part 1 = {}", freqs[test_index]);
+    println!("  part 1 = {}", part1[test_index]);
+
+    let mut part2 = freqs.clone();
+    for i in 0..swaps.len() {
+        let (x, y, z) = (swaps[i].0, swaps[i].1, swaps[(i + 1) % swaps.len()].0);
+        let tmp = part2[z];
+        part2[z] = part2[y];
+        part2[y] = part2[x];
+        part2[x] = tmp;
+    }
+    println!("  part 2 = {}", part2[test_index]);
 
     Ok(())
 }

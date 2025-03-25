@@ -31,5 +31,21 @@ pub fn run() -> Result<(), Error> {
     balances.sort();
     println!("  part 1 = {}", balances.iter().rev().take(3).sum::<i64>());
 
+    let mut part2 = starting_balances.clone();
+    for line in sections[1].split('\n') {
+        if line.is_empty() {
+            continue;
+        }
+        let words = line.split(' ').collect::<Vec<_>>();
+        let from = words[1].to_string();
+        let to = words[3].to_string();
+        let amount = part2[&from].min(words[5].parse::<i64>().unwrap());
+        *part2.get_mut(&from).unwrap() -= amount;
+        *part2.get_mut(&to).unwrap() += amount;
+    }
+    let mut balances = part2.values().copied().collect::<Vec<_>>();
+    balances.sort();
+    println!("  part 2 = {}", balances.iter().rev().take(3).sum::<i64>());
+
     Ok(())
 }

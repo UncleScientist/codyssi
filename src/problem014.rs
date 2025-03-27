@@ -1,5 +1,6 @@
 use std::{
-    collections::{BTreeSet, HashMap, HashSet},
+    cmp::Reverse,
+    collections::{BinaryHeap, HashMap, HashSet},
     io::Error,
 };
 
@@ -39,12 +40,12 @@ pub fn run() -> Result<(), Error> {
 }
 
 fn search(grid: &[Vec<i64>], dest: (usize, usize)) -> Option<i64> {
-    let mut queue = BTreeSet::from([(grid[0][0], (0usize, 0usize))]);
+    let mut queue = BinaryHeap::from([(Reverse(grid[0][0]), (0usize, 0usize))]);
     let mut visited = HashSet::new();
     let mut costs = HashMap::<(usize, usize), i64>::new();
-    while let Some((cost, pos)) = queue.pop_first() {
+    while let Some((cost, pos)) = queue.pop() {
         if pos == dest {
-            return Some(cost);
+            return Some(cost.0);
         }
         if visited.insert(pos) {
             for dir in [(1, 0), (0, 1)] {
@@ -53,14 +54,14 @@ fn search(grid: &[Vec<i64>], dest: (usize, usize)) -> Option<i64> {
                     continue;
                 }
 
-                let newcost = cost + grid[newpos.0][newpos.1];
+                let newcost = cost.0 + grid[newpos.0][newpos.1];
                 if !visited.contains(&newpos) {
                     let entry = costs.entry(pos).or_insert(i64::MAX);
                     if newcost < *entry {
                         *entry = newcost;
                     }
                 }
-                queue.insert((newcost, newpos));
+                queue.push((Reverse(newcost), newpos));
             }
         }
     }

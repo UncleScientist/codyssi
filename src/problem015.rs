@@ -21,12 +21,34 @@ pub fn run() -> Result<(), Error> {
 
     println!("  part 1 = {}", nums.iter().max().unwrap());
 
+    let sum = nums.iter().sum::<usize>();
+    println!("  part 2 = {}", to_str_radix(sum, 68));
+
+    println!("  part 3 = {}", smallest_base_for_4_digits(sum));
     println!(
-        "  part 2 = {}",
-        to_str_radix(nums.iter().sum::<usize>(), 68)
+        "           (or, mathematically, {})",
+        f64::powf(sum as f64, 1. / 4.).ceil()
     );
 
     Ok(())
+}
+
+// log base x (num) = 4
+//
+// x^4 = num
+//
+fn smallest_base_for_4_digits(num: usize) -> usize {
+    for base in 2..num {
+        let mut start = num;
+        for _ in 0..4 {
+            start /= base;
+        }
+        if start == 0 {
+            return base;
+        }
+    }
+
+    panic!("ran out of numbers in usize");
 }
 
 fn to_str_radix(mut num: usize, radix: usize) -> String {

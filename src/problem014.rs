@@ -30,13 +30,21 @@ pub fn run() -> Result<(), Error> {
     }
     println!("  part 1 = {safest}");
 
+    println!("  part 2 = {}", search(&grid, (14, 14)).unwrap());
+    println!(
+        "  part 3 = {}",
+        search(&grid, (gridsize - 1, gridsize - 1)).unwrap()
+    );
+    Ok(())
+}
+
+fn search(grid: &[Vec<i64>], dest: (usize, usize)) -> Option<i64> {
     let mut queue = BTreeSet::from([(grid[0][0], (0usize, 0usize))]);
     let mut visited = HashSet::new();
     let mut costs = HashMap::<(usize, usize), i64>::new();
     while let Some((cost, pos)) = queue.pop_first() {
-        if pos == (14, 14) {
-            println!("  part 2 = {cost}");
-            break;
+        if pos == dest {
+            return Some(cost);
         }
         if visited.insert(pos) {
             for dir in [(1, 0), (0, 1)] {
@@ -57,5 +65,5 @@ pub fn run() -> Result<(), Error> {
         }
     }
 
-    Ok(())
+    None
 }

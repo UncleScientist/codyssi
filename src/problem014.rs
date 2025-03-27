@@ -24,14 +24,15 @@ pub fn run() -> Result<(), Error> {
     let gridsize = grid.len();
 
     let mut safest = i64::MAX;
-    for i in 0..gridsize {
-        let rowsum = grid[i].iter().sum::<i64>();
-        let colsum = (0..gridsize).map(|col| grid[i][col]).sum::<i64>();
+    for row in &grid {
+        let rowsum = row.iter().sum::<i64>();
+        let colsum = (0..gridsize).map(|col| row[col]).sum::<i64>();
         safest = safest.min(rowsum.min(colsum));
     }
     println!("  part 1 = {safest}");
 
     println!("  part 2 = {}", search(&grid, (14, 14)).unwrap());
+
     println!(
         "  part 3 = {}",
         search(&grid, (gridsize - 1, gridsize - 1)).unwrap()

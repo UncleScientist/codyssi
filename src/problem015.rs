@@ -10,21 +10,41 @@ pub fn run() -> Result<(), Error> {
         .split('\n')
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>();
+    let nums = lines
+        .iter()
+        .map(|line| {
+            let (num, radix) = line.split_once(' ').unwrap();
+            let radix = radix.parse().unwrap();
+            from_str_radix(num, radix)
+        })
+        .collect::<Vec<_>>();
+
+    println!("  part 1 = {}", nums.iter().max().unwrap());
 
     println!(
-        "  part 1 = {}",
-        lines
-            .iter()
-            .map(|line| {
-                let (num, radix) = line.split_once(' ').unwrap();
-                let radix = radix.parse().unwrap();
-                from_str_radix(num, radix)
-            })
-            .max()
-            .unwrap()
+        "  part 2 = {}",
+        to_str_radix(nums.iter().sum::<usize>(), 68)
     );
 
     Ok(())
+}
+
+fn to_str_radix(mut num: usize, radix: usize) -> String {
+    const REST: [char; 6] = ['!', '@', '#', '$', '%', '^'];
+
+    let mut result = Vec::new();
+    while num > 0 {
+        let digit = (num % radix) as u8;
+        num /= radix;
+        result.push(match digit {
+            0..=9 => (digit + b'0') as char,
+            10..=35 => ((digit - 10) + b'A') as char,
+            36..=61 => ((digit - 36) + b'a') as char,
+            _ => REST[digit as usize - 62],
+        });
+    }
+
+    result.iter().rev().collect()
 }
 
 fn from_str_radix<S: AsRef<str>>(s: S, radix: usize) -> usize {

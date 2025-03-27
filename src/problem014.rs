@@ -43,9 +43,9 @@ fn search(grid: &[Vec<i64>], dest: (usize, usize)) -> Option<i64> {
     let mut queue = BinaryHeap::from([(Reverse(grid[0][0]), (0usize, 0usize))]);
     let mut visited = HashSet::new();
     let mut costs = HashMap::<(usize, usize), i64>::new();
-    while let Some((cost, pos)) = queue.pop() {
+    while let Some((Reverse(cost), pos)) = queue.pop() {
         if pos == dest {
-            return Some(cost.0);
+            return Some(cost);
         }
         if visited.insert(pos) {
             for dir in [(1, 0), (0, 1)] {
@@ -54,7 +54,7 @@ fn search(grid: &[Vec<i64>], dest: (usize, usize)) -> Option<i64> {
                     continue;
                 }
 
-                let newcost = cost.0 + grid[newpos.0][newpos.1];
+                let newcost = cost + grid[newpos.0][newpos.1];
                 if !visited.contains(&newpos) {
                     let entry = costs.entry(pos).or_insert(i64::MAX);
                     if newcost < *entry {

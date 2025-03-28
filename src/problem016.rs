@@ -1,4 +1,4 @@
-use std::{io::Error, str::FromStr};
+use std::{collections::VecDeque, io::Error, str::FromStr};
 
 pub fn run() -> Result<(), Error> {
     let data = std::fs::read_to_string("input/problem016.txt")?;
@@ -27,12 +27,39 @@ pub fn run() -> Result<(), Error> {
         .map(|line| line.parse::<Oper>().unwrap())
         .collect::<Vec<_>>();
 
+    let actions = sections[2]
+        .split('\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| line.parse::<Action>().unwrap())
+        .collect::<Vec<_>>();
+
     let mut part1 = grid.clone();
     for inst in &instructions {
         part1.execute(inst);
     }
     println!("  part 1 = {}", part1.rowcolmax());
-    // 20854379307
+
+    let mut part2 = grid.clone();
+    let mut p2inst = VecDeque::from(instructions);
+
+    let mut cur_inst = None;
+    for action in &actions {
+        match action {
+            Action::Take => {
+                cur_inst = p2inst.pop_front();
+            }
+            Action::Cycle => {
+                p2inst.push_back(cur_inst.unwrap());
+            }
+            Action::Act => {
+                let Some(inst) = cur_inst else {
+                    panic!("Action on non-instruction");
+                };
+                part2.execute(&inst);
+            }
+        }
+    }
+    println!("  part 2 = {}", part2.rowcolmax());
 
     Ok(())
 }
@@ -188,6 +215,26 @@ impl FromStr for Oper {
                 _ => panic!("Invalid instruction {line}"),
             },
             _ => panic!("Invalid instruction {line}"),
+        })
+    }
+}
+
+#[derive(Debug)]
+enum Action {
+    Take,
+    Cycle,
+    Act,
+}
+
+impl FromStr for Action {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "TAKE" => Self::Take,
+            "CYCLE" => Self::Cycle,
+            "ACT" => Self::Act,
+            _ => panic!("Invalid action {s}"),
         })
     }
 }

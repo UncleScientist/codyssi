@@ -20,8 +20,6 @@ pub fn run() -> Result<(), Error> {
         })
         .collect::<Vec<_>>();
 
-    let grid = Grid { values };
-
     let instructions = sections[1]
         .split('\n')
         .map(|line| line.parse::<Oper>().unwrap())
@@ -33,100 +31,90 @@ pub fn run() -> Result<(), Error> {
         .map(|line| line.parse::<Action>().unwrap())
         .collect::<Vec<_>>();
 
-    let mut part1 = grid.clone();
-    for inst in &instructions {
-        part1.execute(inst);
+    let charybdis = Charybdis {
+        instructions,
+        actions,
+    };
+
+    let mut part1 = values.clone();
+    charybdis.execute_all(&mut part1);
+    println!("  part 1 = {}", rowcolmax(&part1));
+
+    let mut part2 = values.clone();
+    let mut p2inst = VecDeque::from(charybdis.instructions.clone());
+    charybdis.do_actions(&mut part2, &mut p2inst);
+    println!("  part 2 = {}", rowcolmax(&part2));
+
+    let mut part3 = values.clone();
+    let mut p3inst = VecDeque::from(charybdis.instructions.clone());
+    while !p3inst.is_empty() {
+        charybdis.do_actions(&mut part3, &mut p3inst);
     }
-    println!("  part 1 = {}", part1.rowcolmax());
-
-    let mut part2 = grid.clone();
-    let mut p2inst = VecDeque::from(instructions.clone());
-
-    let mut cur_inst = None;
-    for action in &actions {
-        match action {
-            Action::Take => {
-                cur_inst = p2inst.pop_front();
-            }
-            Action::Cycle => {
-                p2inst.push_back(cur_inst.unwrap());
-            }
-            Action::Act => {
-                let Some(inst) = cur_inst else {
-                    panic!("Action on non-instruction");
-                };
-                part2.execute(&inst);
-            }
-        }
-    }
-    println!("  part 2 = {}", part2.rowcolmax());
-
-    let mut part3 = grid.clone();
-    let mut p3inst = VecDeque::from(instructions);
-
-    let mut cur_inst = None;
-    'out: loop {
-        for action in &actions {
-            if cur_inst.is_none() && p3inst.is_empty() {
-                break 'out;
-            }
-            match action {
-                Action::Take => {
-                    cur_inst = p3inst.pop_front();
-                }
-                Action::Cycle => {
-                    p3inst.push_back(cur_inst.unwrap());
-                }
-                Action::Act => {
-                    let Some(inst) = cur_inst else {
-                        panic!("Action on non-instruction");
-                    };
-                    part3.execute(&inst);
-                }
-            }
-        }
-    }
-    println!("  part 3 = {}", part3.rowcolmax());
+    println!("  part 3 = {}", rowcolmax(&part3));
 
     Ok(())
 }
 
 #[derive(Debug, Clone)]
-struct Grid {
-    values: Vec<Vec<i64>>,
+struct Charybdis {
+    instructions: Vec<Oper>,
+    actions: Vec<Action>,
 }
 
-impl Grid {
-    fn execute(&mut self, inst: &Oper) {
+impl Charybdis {
+    fn do_actions(&self, values: &mut [Vec<i64>], instructions: &mut VecDeque<Oper>) {
+        let mut cur_inst = None;
+        for action in &self.actions {
+            if cur_inst.is_none() && instructions.is_empty() {
+                return;
+            }
+            match action {
+                Action::Take => {
+                    cur_inst = instructions.pop_front();
+                }
+                Action::Cycle => {
+                    instructions.push_back(cur_inst.unwrap());
+                }
+                Action::Act => {
+                    let Some(inst) = cur_inst else {
+                        panic!("Action on non-instruction");
+                    };
+                    self.execute(values, &inst);
+                }
+            }
+        }
+    }
+
+    fn execute(&self, values: &mut [Vec<i64>], inst: &Oper) {
         match inst {
             Oper::ShiftRow(r, amt) => {
-                self.values[*r].rotate_right(*amt);
+                values[*r].rotate_right(*amt);
             }
             Oper::ShiftCol(c, amt) => {
                 for _ in 0..*amt {
-                    let mut len = self.values.len();
-                    let last = self.values[len - 1][*c];
+                    let mut len = values.len();
+                    let last = values[len - 1][*c];
                     len -= 1;
                     while len > 0 {
-                        self.values[len][*c] = self.values[len - 1][*c];
+                        values[len][*c] = values[len - 1][*c];
                         len -= 1;
                     }
-                    self.values[0][*c] = last;
+                    values[0][*c] = last;
                 }
             }
             Oper::Add(range, amt) => match range {
                 Range::Row(r) => {
-                    for item in &mut self.values[*r] {
+                    for item in &mut values[*r] {
                         *item = (*item + *amt) % 1073741824;
                     }
                 }
                 Range::Col(c) => {
-                    for row in &mut self.values {
+                    for row in values {
                         row[*c] = (row[*c] + *amt) % 1073741824;
                     }
                 }
                 Range::All => {
-                    for row in &mut self.values {
+                    for row in values {
                         for item in row {
                             *item = (*item + *amt) % 1073741824;
                         }
@@ -135,17 +123,17 @@ impl Grid {
             },
             Oper::Sub(range, amt) => match range {
                 Range::Row(r) => {
-                    for item in &mut self.values[*r] {
+                    for item in &mut values[*r] {
                         *item = (*item - *amt) % 1073741824;
                     }
                 }
                 Range::Col(c) => {
-                    for row in &mut self.values {
+                    for row in values {
                         row[*c] = (row[*c] - *amt) % 1073741824;
                     }
                 }
                 Range::All => {
-                    for row in &mut self.values {
+                    for row in values {
                         for item in row {
                             *item = (*item - *amt) % 1073741824;
                         }
@@ -154,17 +142,17 @@ impl Grid {
             },
             Oper::Multiply(range, amt) => match range {
                 Range::Row(r) => {
-                    for item in &mut self.values[*r] {
+                    for item in &mut values[*r] {
                         *item = (*item * *amt) % 1073741824;
                     }
                 }
                 Range::Col(c) => {
-                    for row in &mut self.values {
+                    for row in values {
                         row[*c] = (row[*c] * *amt) % 1073741824;
                     }
                 }
                 Range::All => {
-                    for row in &mut self.values {
+                    for row in values {
                         for item in row {
                             *item = (*item * *amt) % 1073741824;
                         }
@@ -174,18 +162,24 @@ impl Grid {
         }
     }
 
-    fn rowcolmax(&self) -> i64 {
-        let mut rowmax = 0;
-        for row in &self.values {
-            rowmax = rowmax.max(row.iter().sum::<i64>());
+    fn execute_all(&self, values: &mut [Vec<i64>]) {
+        for inst in &self.instructions {
+            self.execute(values, inst);
         }
-
-        let mut colmax = 0;
-        for col in 0..self.values[0].len() {
-            colmax = colmax.max(self.values.iter().map(|row| row[col]).sum::<i64>());
-        }
-        rowmax.max(colmax)
     }
+}
+
+fn rowcolmax(values: &[Vec<i64>]) -> i64 {
+    let mut rowmax = 0;
+    for row in values {
+        rowmax = rowmax.max(row.iter().sum::<i64>());
+    }
+
+    let mut colmax = 0;
+    for col in 0..values[0].len() {
+        colmax = colmax.max(values.iter().map(|row| row[col]).sum::<i64>());
+    }
+    rowmax.max(colmax)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -246,7 +240,7 @@ impl FromStr for Oper {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Action {
     Take,
     Cycle,

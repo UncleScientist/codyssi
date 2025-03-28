@@ -5,14 +5,7 @@ use std::{
 };
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem004.txt")?;
-
-    println!("Puzzle 4: Traversing the Country");
-
-    let lines = data
-        .split('\n')
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
+    let lines = crate::read_and_split(4, "Traversing the Country")?;
     let edges = lines
         .iter()
         .map(|edge| edge.parse::<Edge>().unwrap())

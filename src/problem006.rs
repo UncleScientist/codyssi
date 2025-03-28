@@ -1,14 +1,7 @@
 use std::{io::Error, str::FromStr};
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem006.txt")?;
-
-    println!("Puzzle 6: Absurd Arithmetic");
-
-    let lines = data
-        .split('\n')
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
+    let lines = crate::read_and_split(6, "Absurd Arithmetic")?;
 
     let ops = lines[0..3]
         .iter()

@@ -1,14 +1,7 @@
 use std::io::Error;
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem002.txt")?;
-
-    println!("Puzzle 2: Sensors and Circuits");
-
-    let lines = data
-        .split('\n')
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
+    let lines = crate::read_and_split(2, "Sensors and Circuits")?;
     let sensors = lines.iter().map(|text| *text == "TRUE").collect::<Vec<_>>();
 
     println!(

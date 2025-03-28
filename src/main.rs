@@ -33,3 +33,21 @@ fn main() {
     let _ = crate::problem002::run();
     let _ = crate::problem001::run();
 }
+
+pub fn read_and_split<'a, S: AsRef<str>>(
+    num: usize,
+    title: S,
+) -> Result<Vec<String>, std::io::Error> {
+    let path = if num == 0 {
+        "test.txt".to_string()
+    } else {
+        format!("input/problem{num:03}.txt")
+    };
+    let data = std::fs::read_to_string(path)?;
+    println!("Puzzle {num}: {}", title.as_ref());
+    Ok(data
+        .split('\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| line.to_string())
+        .collect::<Vec<_>>())
+}

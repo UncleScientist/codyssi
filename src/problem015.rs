@@ -1,15 +1,8 @@
 use std::io::Error;
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem015.txt")?;
-    // let data = std::fs::read_to_string("test.txt")?;
+    let lines = crate::read_and_split(15, "Games in a Storm")?;
 
-    println!("Puzzle 15: Games in a Storm");
-
-    let lines = data
-        .split('\n')
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
     let nums = lines
         .iter()
         .map(|line| {

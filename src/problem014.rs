@@ -5,15 +5,7 @@ use std::{
 };
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem014.txt")?;
-    // let data = std::fs::read_to_string("test.txt")?;
-
-    println!("Puzzle 14: Cyclops Chaos");
-
-    let lines = data
-        .split('\n')
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
+    let lines = crate::read_and_split(14, "Cyclops Chaos")?;
 
     let mut grid = Vec::<Vec<i64>>::new();
 

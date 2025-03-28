@@ -1,15 +1,7 @@
 use std::io::Error;
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem010.txt")?;
-    // let data = std::fs::read_to_string("test.txt")?;
-
-    println!("Puzzle 10: Lotus Scramble");
-
-    let lines = data
-        .split('\n')
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
+    let lines = crate::read_and_split(10, "Lotus Scramble")?;
 
     println!(
         "  part 1 = {}",

@@ -1,14 +1,7 @@
 use std::{io::Error, str::FromStr};
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem007.txt")?;
-
-    println!("Puzzle 7: Supplies in Surplus");
-
-    let lines = data
-        .split('\n')
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
+    let lines = crate::read_and_split(7, "Supplies in Surplus")?;
     let boxen = lines
         .iter()
         .flat_map(|line| {

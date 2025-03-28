@@ -1,12 +1,8 @@
 use std::io::Error;
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem005.txt")?;
+    let mut lines = crate::read_and_split(5, "Compass Calibration")?;
 
-    println!("Puzzle 5: Compass Calibration");
-
-    let mut lines = data.split('\n').collect::<Vec<_>>();
-    lines.pop();
     let ops = lines.pop().unwrap();
     let nums = lines
         .iter()

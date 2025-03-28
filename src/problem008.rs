@@ -1,14 +1,7 @@
 use std::io::Error;
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem008.txt")?;
-
-    println!("Puzzle 8: Aeolian Transmissions");
-
-    let lines = data
-        .split('\n')
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
+    let lines = crate::read_and_split(8, "Aeolian Transmissions")?;
 
     println!("  part 1 = {}", lines.iter().map(units).sum::<isize>());
     println!(

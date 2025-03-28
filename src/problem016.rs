@@ -11,7 +11,7 @@ pub fn run() -> Result<(), Error> {
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>();
 
-    let mut values = sections[0]
+    let values = sections[0]
         .split('\n')
         .map(|line| {
             line.split(' ')
@@ -20,41 +20,59 @@ pub fn run() -> Result<(), Error> {
         })
         .collect::<Vec<_>>();
 
+    let grid = Grid { values };
+
     let instructions = sections[1]
         .split('\n')
         .map(|line| line.parse::<Oper>().unwrap())
         .collect::<Vec<_>>();
 
+    let mut part1 = grid.clone();
     for inst in &instructions {
+        part1.execute(inst);
+    }
+    println!("  part 1 = {}", part1.rowcolmax());
+    // 20854379307
+
+    Ok(())
+}
+
+#[derive(Debug, Clone)]
+struct Grid {
+    values: Vec<Vec<i64>>,
+}
+
+impl Grid {
+    fn execute(&mut self, inst: &Oper) {
         match inst {
             Oper::ShiftRow(r, amt) => {
-                values[*r].rotate_right(*amt);
+                self.values[*r].rotate_right(*amt);
             }
             Oper::ShiftCol(c, amt) => {
                 for _ in 0..*amt {
-                    let mut len = values.len();
-                    let last = values[len - 1][*c];
+                    let mut len = self.values.len();
+                    let last = self.values[len - 1][*c];
                     len -= 1;
                     while len > 0 {
-                        values[len][*c] = values[len - 1][*c];
+                        self.values[len][*c] = self.values[len - 1][*c];
                         len -= 1;
                     }
-                    values[0][*c] = last;
+                    self.values[0][*c] = last;
                 }
             }
             Oper::Add(range, amt) => match range {
                 Range::Row(r) => {
-                    for item in &mut values[*r] {
+                    for item in &mut self.values[*r] {
                         *item = (*item + *amt) % 1073741824;
                     }
                 }
                 Range::Col(c) => {
-                    for row in &mut values {
+                    for row in &mut self.values {
                         row[*c] = (row[*c] + *amt) % 1073741824;
                     }
                 }
                 Range::All => {
-                    for row in &mut values {
+                    for row in &mut self.values {
                         for item in row {
                             *item = (*item + *amt) % 1073741824;
                         }
@@ -63,17 +81,17 @@ pub fn run() -> Result<(), Error> {
             },
             Oper::Sub(range, amt) => match range {
                 Range::Row(r) => {
-                    for item in &mut values[*r] {
+                    for item in &mut self.values[*r] {
                         *item = (*item - *amt) % 1073741824;
                     }
                 }
                 Range::Col(c) => {
-                    for row in &mut values {
+                    for row in &mut self.values {
                         row[*c] = (row[*c] - *amt) % 1073741824;
                     }
                 }
                 Range::All => {
-                    for row in &mut values {
+                    for row in &mut self.values {
                         for item in row {
                             *item = (*item - *amt) % 1073741824;
                         }
@@ -82,17 +100,17 @@ pub fn run() -> Result<(), Error> {
             },
             Oper::Multiply(range, amt) => match range {
                 Range::Row(r) => {
-                    for item in &mut values[*r] {
+                    for item in &mut self.values[*r] {
                         *item = (*item * *amt) % 1073741824;
                     }
                 }
                 Range::Col(c) => {
-                    for row in &mut values {
+                    for row in &mut self.values {
                         row[*c] = (row[*c] * *amt) % 1073741824;
                     }
                 }
                 Range::All => {
-                    for row in &mut values {
+                    for row in &mut self.values {
                         for item in row {
                             *item = (*item * *amt) % 1073741824;
                         }
@@ -102,28 +120,28 @@ pub fn run() -> Result<(), Error> {
         }
     }
 
-    let mut rowmax = 0;
-    for row in &values {
-        rowmax = rowmax.max(row.iter().sum::<i64>());
-    }
+    fn rowcolmax(&self) -> i64 {
+        let mut rowmax = 0;
+        for row in &self.values {
+            rowmax = rowmax.max(row.iter().sum::<i64>());
+        }
 
-    let mut colmax = 0;
-    for col in 0..values[0].len() {
-        colmax = colmax.max(values.iter().map(|row| row[col]).sum::<i64>());
+        let mut colmax = 0;
+        for col in 0..self.values[0].len() {
+            colmax = colmax.max(self.values.iter().map(|row| row[col]).sum::<i64>());
+        }
+        rowmax.max(colmax)
     }
-    println!("  part 1 = {}", rowmax.max(colmax));
-
-    Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Range {
     Row(usize),
     Col(usize),
     All,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Oper {
     ShiftRow(usize, usize),
     ShiftCol(usize, usize),

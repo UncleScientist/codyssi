@@ -40,7 +40,7 @@ pub fn run() -> Result<(), Error> {
     println!("  part 1 = {}", part1.rowcolmax());
 
     let mut part2 = grid.clone();
-    let mut p2inst = VecDeque::from(instructions);
+    let mut p2inst = VecDeque::from(instructions.clone());
 
     let mut cur_inst = None;
     for action in &actions {
@@ -60,6 +60,33 @@ pub fn run() -> Result<(), Error> {
         }
     }
     println!("  part 2 = {}", part2.rowcolmax());
+
+    let mut part3 = grid.clone();
+    let mut p3inst = VecDeque::from(instructions);
+
+    let mut cur_inst = None;
+    'out: loop {
+        for action in &actions {
+            if cur_inst.is_none() && p3inst.is_empty() {
+                break 'out;
+            }
+            match action {
+                Action::Take => {
+                    cur_inst = p3inst.pop_front();
+                }
+                Action::Cycle => {
+                    p3inst.push_back(cur_inst.unwrap());
+                }
+                Action::Act => {
+                    let Some(inst) = cur_inst else {
+                        panic!("Action on non-instruction");
+                    };
+                    part3.execute(&inst);
+                }
+            }
+        }
+    }
+    println!("  part 3 = {}", part3.rowcolmax());
 
     Ok(())
 }

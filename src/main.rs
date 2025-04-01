@@ -14,8 +14,10 @@ mod problem013;
 mod problem014;
 mod problem015;
 mod problem016;
+mod problem017;
 
 fn main() {
+    let _ = crate::problem017::run();
     let _ = crate::problem016::run();
     let _ = crate::problem015::run();
     let _ = crate::problem014::run();

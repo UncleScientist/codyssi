@@ -1,21 +1,14 @@
 use std::io::Error;
 
 pub fn run() -> Result<(), Error> {
-    let data = std::fs::read_to_string("input/problem011.txt")?;
-    // let data = std::fs::read_to_string("test.txt")?;
+    let sections = crate::read_sections(11, "Siren Disruption")?;
 
-    println!("Puzzle 11: Siren Disruption");
-
-    let sections = data
-        .split("\n\n")
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
     let freqs = sections[0]
-        .split('\n')
+        .iter()
         .map(|freq| freq.parse::<isize>().unwrap())
         .collect::<Vec<_>>();
     let swaps = sections[1]
-        .split('\n')
+        .iter()
         .map(|swap| {
             let (left, right) = swap.split_once('-').unwrap();
             (
@@ -24,7 +17,7 @@ pub fn run() -> Result<(), Error> {
             )
         })
         .collect::<Vec<_>>();
-    let test_index = sections[2].trim().parse::<usize>().unwrap() - 1;
+    let test_index = sections[2][0].parse::<usize>().unwrap() - 1;
 
     let mut part1 = freqs.clone();
     for swap in &swaps {

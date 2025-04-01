@@ -1,16 +1,16 @@
 use std::{io::Error, str::FromStr};
 
 pub fn run() -> Result<(), Error> {
-    let lines = crate::read_and_split(6, "Absurd Arithmetic")?;
+    let lines = crate::read_sections(6, "Absurd Arithmetic")?;
 
-    let ops = lines[0..3]
+    let ops = lines[0]
         .iter()
         .map(|line| line.parse::<PriceOp>().unwrap())
         .rev()
         .collect::<Vec<_>>();
     let price = |num: i64| ops.iter().fold(num, |num, op| op.apply(num));
 
-    let mut nums = lines[3..]
+    let mut nums = lines[1]
         .iter()
         .map(|line| line.parse::<i64>().unwrap())
         .collect::<Vec<_>>();

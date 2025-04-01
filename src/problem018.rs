@@ -19,8 +19,48 @@ pub fn run() -> Result<(), Error> {
             .map(|item| item.materials)
             .sum::<usize>()
     );
-
+    println!("  part 2 = {}", knapsack_with_cost(&items, 30));
+    println!("  part 3 = {}", knapsack_with_cost(&items, 300));
     Ok(())
+}
+
+fn knapsack_with_cost(items: &[Item], available_cost: usize) -> usize {
+    // tuple: (quality, materials)
+    // item    0      1       2       3         25    ... 30
+    //   0     (0,0)  (0,0)   (0,0)   (0,0) ..  (0,0) ... (0,0)
+    //   1     (0,0)  (0,0)   (0,0)   (0,0) .. (25,7)
+    //   2     (0,0)
+    //   3     (0,0)
+    //   4     (0,0)
+    //   ..
+    //   nth   ........................................ (best cost, best materials)
+
+    let mut knapsack = vec![vec![(0usize, 0usize); available_cost + 1]; items.len() + 1];
+    for idx in 1..=items.len() {
+        for cost in 1..=available_cost {
+            let value_without_item = knapsack[idx - 1][cost];
+            let cur_item_cost = items[idx - 1].cost;
+            if cost >= cur_item_cost {
+                let remaining_cost = cost - cur_item_cost;
+                let prev_item = knapsack[idx - 1][remaining_cost];
+                let new_value = (
+                    items[idx - 1].quality + prev_item.0,
+                    items[idx - 1].materials + prev_item.1,
+                );
+                if new_value.0 > value_without_item.0
+                    || (new_value.0 == value_without_item.0 && new_value.1 < value_without_item.1)
+                {
+                    knapsack[idx][cost] = new_value;
+                } else {
+                    knapsack[idx][cost] = value_without_item;
+                }
+            } else {
+                knapsack[idx][cost] = value_without_item;
+            }
+        }
+    }
+    let best = knapsack[items.len()][available_cost];
+    best.0 * best.1
 }
 
 #[derive(Debug, PartialEq, Eq)]

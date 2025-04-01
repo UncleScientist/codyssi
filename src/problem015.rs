@@ -17,9 +17,9 @@ pub fn run() -> Result<(), Error> {
     let sum = nums.iter().sum::<usize>();
     println!("  part 2 = {}", to_str_radix(sum, 68));
 
-    println!("  part 3 = {}", smallest_base_for_4_digits(sum));
     println!(
-        "           (or, mathematically, {})",
+        "  part 3 = {} (or, mathematically, {})",
+        smallest_base_for_4_digits(sum),
         f64::powf(sum as f64, 1. / 4.).ceil()
     );
 

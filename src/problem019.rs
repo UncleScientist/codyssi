@@ -9,8 +9,9 @@ pub fn run() -> Result<(), Error> {
 
     let mut root: Option<Box<BinaryTree>> = None;
 
+    let mut _codelist = Vec::new();
     for artifact in artifacts {
-        insert(&mut root, artifact, 1);
+        insert(&mut root, artifact, 1, &mut _codelist);
     }
 
     let mut layer_sum = Vec::new();
@@ -24,6 +25,11 @@ pub fn run() -> Result<(), Error> {
         "  part 1 = {}",
         layer_sum.iter().max().unwrap() * (layer_sum.len() - 1)
     );
+
+    let missing_one = "asdfgh | 500000".parse::<Artifact>().unwrap();
+    let mut codelist = Vec::new();
+    insert(&mut root, missing_one, 1, &mut codelist);
+    println!("  part 2 = {}", codelist.join("-"));
 
     Ok(())
 }
@@ -53,12 +59,18 @@ fn traverse<F: FnMut(&Artifact)>(tree: &Option<Box<BinaryTree>>, callback: &mut 
     }
 }
 
-fn insert(tree: &mut Option<Box<BinaryTree>>, mut node: Artifact, layer: usize) {
+fn insert(
+    tree: &mut Option<Box<BinaryTree>>,
+    mut node: Artifact,
+    layer: usize,
+    codelist: &mut Vec<String>,
+) {
     if let Some(entry) = tree {
+        codelist.push(entry.node.code.clone());
         if node.id < entry.node.id {
-            insert(&mut entry.left, node, layer + 1);
+            insert(&mut entry.left, node, layer + 1, codelist);
         } else {
-            insert(&mut entry.right, node, layer + 1);
+            insert(&mut entry.right, node, layer + 1, codelist);
         }
     } else {
         node.layer = layer;
@@ -68,7 +80,7 @@ fn insert(tree: &mut Option<Box<BinaryTree>>, mut node: Artifact, layer: usize) 
 
 #[derive(Debug)]
 struct Artifact {
-    _code: String,
+    code: String,
     id: usize,
     layer: usize,
 }
@@ -79,7 +91,7 @@ impl FromStr for Artifact {
     fn from_str(line: &str) -> Result<Self, Self::Err> {
         let (left, right) = line.split_once(" | ").unwrap();
         Ok(Self {
-            _code: left.into(),
+            code: left.into(),
             id: right.parse().unwrap(),
             layer: 0,
         })

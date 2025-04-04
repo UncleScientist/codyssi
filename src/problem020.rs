@@ -13,34 +13,117 @@ pub fn run() -> Result<(), Error> {
         .map(|ch| ch.into())
         .collect::<Vec<_>>();
 
+    let mut cube = Cube::new(80);
+
+    cube.action(instructions[0]);
+    for (twist, inst) in twists.iter().zip(instructions.iter().skip(1)) {
+        cube.twist(*twist);
+        cube.action(*inst);
+    }
+    let mut values = cube.absorption;
+    values.sort();
+    println!(
+        "  part 1 = {}",
+        values.iter().rev().take(2).product::<usize>()
+    );
+
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct CubeFace {
     face: Vec<Vec<u8>>,
 }
 
+impl CubeFace {
+    fn new(size: usize) -> Self {
+        Self {
+            face: vec![vec![0; size]; size],
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Cube {
-    faces: [CubeFace; 6],
+    faces: Vec<CubeFace>,
     top: usize,
     bottom: usize,
     left: usize,
     right: usize,
     back: usize,
     forward: usize, // this is the one facing the user
-    absorbption: [usize; 6],
+    absorption: [usize; 6],
 }
 
-#[derive(Debug)]
+impl Cube {
+    fn new(size: usize) -> Self {
+        Self {
+            faces: vec![CubeFace::new(size); 6],
+            forward: 0,
+            top: 1,
+            back: 2,
+            bottom: 3,
+            left: 4,
+            right: 5,
+            absorption: [0, 0, 0, 0, 0, 0],
+        }
+    }
+
+    fn action(&mut self, inst: Instruction) {
+        let size = self.faces[0].face.len();
+        match inst {
+            Instruction::Face(amt) => self.absorption[self.forward] += (amt as usize) * size * size,
+            Instruction::Row(_, amt) => {
+                self.absorption[self.forward] += (amt as usize) * size;
+            }
+            Instruction::Col(_, amt) => {
+                self.absorption[self.forward] += (amt as usize) * size;
+            }
+        }
+    }
+
+    fn twist(&mut self, twist: Twist) {
+        match twist {
+            Twist::Left => {
+                let tmp = self.left;
+                self.left = self.back;
+                self.back = self.right;
+                self.right = self.forward;
+                self.forward = tmp;
+            }
+            Twist::Right => {
+                let tmp = self.right;
+                self.right = self.back;
+                self.back = self.left;
+                self.left = self.forward;
+                self.forward = tmp;
+            }
+            Twist::Up => {
+                let tmp = self.top;
+                self.top = self.back;
+                self.back = self.bottom;
+                self.bottom = self.forward;
+                self.forward = tmp;
+            }
+            Twist::Down => {
+                let tmp = self.bottom;
+                self.bottom = self.back;
+                self.back = self.top;
+                self.top = self.forward;
+                self.forward = tmp;
+            }
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 enum Instruction {
     Face(u8),
     Row(usize, u8),
     Col(usize, u8),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Twist {
     Left,
     Right,

@@ -91,20 +91,20 @@ impl CubeFace {
     fn add_all(&mut self, amt: u8) {
         for row in &mut self.face {
             for cell in row {
-                *cell = add_cell(*cell, amt);
+                *cell = (*cell + amt - 1) % 100 + 1;
             }
         }
     }
 
     fn add_row(&mut self, row: usize, amt: u8) {
         for cell in &mut self.face[row] {
-            *cell = add_cell(*cell, amt);
+            *cell = (*cell + amt - 1) % 100 + 1;
         }
     }
 
     fn add_col(&mut self, col: usize, amt: u8) {
         for row in &mut self.face {
-            row[col] = add_cell(row[col], amt);
+            row[col] = (row[col] + amt - 1) % 100 + 1;
         }
     }
 
@@ -121,15 +121,6 @@ impl CubeFace {
         }
         rowmax.max(colmax)
     }
-}
-
-fn add_cell(val: u8, amt: u8) -> u8 {
-    let mut newval = val + amt;
-    while newval > 100 {
-        newval -= 100;
-    }
-    newval
-    // (val + amt - 1) % 100 + 1
 }
 
 #[derive(Debug)]
@@ -219,6 +210,10 @@ impl Cube {
                 self.forward = tmp;
                 self.faces[self.left].rotate_right();
                 self.faces[self.right].rotate_left();
+                self.faces[self.back].rotate_right();
+                self.faces[self.back].rotate_right();
+                self.faces[self.top].rotate_right();
+                self.faces[self.top].rotate_right();
             }
             Twist::Down => {
                 let tmp = self.bottom;
@@ -228,6 +223,10 @@ impl Cube {
                 self.forward = tmp;
                 self.faces[self.left].rotate_left();
                 self.faces[self.right].rotate_right();
+                self.faces[self.back].rotate_right();
+                self.faces[self.back].rotate_right();
+                self.faces[self.bottom].rotate_right();
+                self.faces[self.bottom].rotate_right();
             }
         }
     }
@@ -310,14 +309,38 @@ mod test {
     }
 
     #[test]
-    fn test_mod_stuff() {
-        assert_eq!(39, add_cell(1, 38));
-        assert_eq!(72, add_cell(1, 71));
-        assert_eq!(7, add_cell(68, 39));
-        assert_eq!(100, add_cell(99, 1));
-        assert_eq!(98, add_cell(99, 99));
-        for i in 1..=100 {
-            assert_eq!(i, add_cell(i, 100));
-        }
+    fn test_cube_twist_up() {
+        let mut cube = Cube::new(3);
+        cube.faces[cube.forward].face[0][0] = 10;
+        cube.faces[cube.right].face[0][0] = 11;
+        cube.faces[cube.back].face[0][0] = 12;
+        cube.faces[cube.left].face[0][0] = 13;
+        cube.faces[cube.top].face[0][0] = 14;
+        cube.faces[cube.bottom].face[0][0] = 15;
+        cube.twist(Twist::Up); // make the "up" face now the "forward" face
+        assert_eq!(cube.faces[cube.bottom].face[0][0], 10);
+        assert_eq!(cube.faces[cube.right].face[2][0], 11);
+        assert_eq!(cube.faces[cube.top].face[2][2], 12);
+        assert_eq!(cube.faces[cube.left].face[0][2], 13);
+        assert_eq!(cube.faces[cube.forward].face[0][0], 14);
+        assert_eq!(cube.faces[cube.back].face[2][2], 15);
+    }
+
+    #[test]
+    fn test_cube_twist_right() {
+        let mut cube = Cube::new(3);
+        cube.faces[cube.forward].face[0][0] = 10;
+        cube.faces[cube.right].face[0][0] = 11;
+        cube.faces[cube.back].face[0][0] = 12;
+        cube.faces[cube.left].face[0][0] = 13;
+        cube.faces[cube.top].face[0][0] = 14;
+        cube.faces[cube.bottom].face[0][0] = 15;
+        cube.twist(Twist::Right); // make the "right" face now the "forward" face
+        assert_eq!(cube.faces[cube.left].face[0][0], 10);
+        assert_eq!(cube.faces[cube.forward].face[0][0], 11);
+        assert_eq!(cube.faces[cube.right].face[0][0], 12);
+        assert_eq!(cube.faces[cube.back].face[0][0], 13);
+        assert_eq!(cube.faces[cube.top].face[0][2], 14);
+        assert_eq!(cube.faces[cube.bottom].face[2][0], 15);
     }
 }

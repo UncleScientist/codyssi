@@ -15,16 +15,10 @@ pub fn run() -> Result<(), Error> {
 
     let mut cube = Cube::new(80);
 
-    // cube._print();
-    // println!("{:?}", instructions[0]);
     cube.action(instructions[0]);
-    // cube._print();
     for (twist, inst) in twists.iter().zip(instructions.iter().skip(1)) {
-        // println!("{twist:?}");
         cube.twist(*twist);
-        // println!("{inst:?}");
         cube.action(*inst);
-        // cube._print();
     }
     let mut values = cube.absorption;
     values.sort();
@@ -34,7 +28,15 @@ pub fn run() -> Result<(), Error> {
     );
 
     println!("  part 2 = {}", cube.dominant_sums());
-    // incorrect: 60449500975162539098880
+
+    let mut cube = Cube::new(80);
+    cube.action(instructions[0]);
+    for (twist, inst) in twists.iter().zip(instructions.iter().skip(1)) {
+        cube.twist(*twist);
+        cube.linear_action(*inst);
+    }
+
+    println!("  part 3 = {}", cube.dominant_sums());
 
     Ok(())
 }
@@ -86,6 +88,21 @@ impl CubeFace {
             }
         }
         self.face = result;
+    }
+
+    // To rotate the "top" to the "back" we need to make the bottom row into the top row,
+    // and the left edge into the right edge
+    //
+    //     1 2 3 < bottom row
+    //     4 5 6 < middle row
+    //     7 8 9 < top row
+    //     -----
+    //     1 2 3   |
+    //     4 5 6  top
+    //     7 8 9
+    fn rotate_flip(&mut self) {
+        self.rotate_right();
+        self.rotate_right();
     }
 
     fn add_all(&mut self, amt: u8) {
@@ -140,9 +157,9 @@ impl Cube {
         Self {
             faces: vec![CubeFace::new(size); 6],
             forward: 0,
-            top: 1,
+            top: 3,
             back: 2,
-            bottom: 3,
+            bottom: 1,
             left: 4,
             right: 5,
             absorption: [0, 0, 0, 0, 0, 0],
@@ -150,18 +167,18 @@ impl Cube {
     }
 
     fn _print(&self) {
-        println!("forward:");
-        self.faces[self.forward]._print();
-        println!("back:");
-        self.faces[self.back]._print();
-        println!("left:");
-        self.faces[self.left]._print();
-        println!("right:");
-        self.faces[self.right]._print();
-        println!("top:");
-        self.faces[self.top]._print();
-        println!("bottom:");
-        self.faces[self.bottom]._print();
+        println!("face 1:");
+        self.faces[0]._print();
+        println!("face 2:");
+        self.faces[1]._print();
+        println!("face 3:");
+        self.faces[2]._print();
+        println!("face 4:");
+        self.faces[3]._print();
+        println!("face 5:");
+        self.faces[4]._print();
+        println!("face 6:");
+        self.faces[5]._print();
     }
 
     fn action(&mut self, inst: Instruction) {
@@ -178,6 +195,26 @@ impl Cube {
             Instruction::Col(col, amt) => {
                 self.faces[self.forward].add_col(col, amt);
                 self.absorption[self.forward] += (amt as u128) * size;
+            }
+        }
+    }
+
+    fn linear_action(&mut self, inst: Instruction) {
+        let size = self.faces[0].face.len();
+        match inst {
+            Instruction::Face(amt) => {
+                self.faces[self.forward].add_all(amt);
+            }
+            Instruction::Row(row, amt) => {
+                for face in [self.forward, self.right, self.left, self.back] {
+                    self.faces[face].add_row(row, amt);
+                }
+            }
+            Instruction::Col(col, amt) => {
+                self.faces[self.forward].add_col(col, amt);
+                self.faces[self.top].add_col(col, amt);
+                self.faces[self.bottom].add_col(col, amt);
+                self.faces[self.back].add_col(size - 1 - col, amt);
             }
         }
     }
@@ -210,10 +247,8 @@ impl Cube {
                 self.forward = tmp;
                 self.faces[self.left].rotate_right();
                 self.faces[self.right].rotate_left();
-                self.faces[self.back].rotate_right();
-                self.faces[self.back].rotate_right();
-                self.faces[self.top].rotate_right();
-                self.faces[self.top].rotate_right();
+                self.faces[self.back].rotate_flip();
+                self.faces[self.top].rotate_flip();
             }
             Twist::Down => {
                 let tmp = self.bottom;
@@ -223,10 +258,8 @@ impl Cube {
                 self.forward = tmp;
                 self.faces[self.left].rotate_left();
                 self.faces[self.right].rotate_right();
-                self.faces[self.back].rotate_right();
-                self.faces[self.back].rotate_right();
-                self.faces[self.bottom].rotate_right();
-                self.faces[self.bottom].rotate_right();
+                self.faces[self.back].rotate_flip();
+                self.faces[self.bottom].rotate_flip();
             }
         }
     }
@@ -309,6 +342,16 @@ mod test {
     }
 
     #[test]
+    fn test_rotate_flip() {
+        let v1 = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+        let v2 = vec![vec![9, 8, 7], vec![6, 5, 4], vec![3, 2, 1]];
+        let mut face = CubeFace::new(3);
+        face.face = v1;
+        face.rotate_flip();
+        assert_eq!(v2, face.face);
+    }
+
+    #[test]
     fn test_cube_twist_up() {
         let mut cube = Cube::new(3);
         cube.faces[cube.forward].face[0][0] = 10;
@@ -342,5 +385,69 @@ mod test {
         assert_eq!(cube.faces[cube.back].face[0][0], 13);
         assert_eq!(cube.faces[cube.top].face[0][2], 14);
         assert_eq!(cube.faces[cube.bottom].face[2][0], 15);
+    }
+
+    #[test]
+    fn test_cube_top_to_back() {
+        let mut cube = Cube::new(3);
+
+        let v1 = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+        let v2 = vec![vec![9, 8, 7], vec![6, 5, 4], vec![3, 2, 1]];
+
+        cube.faces[cube.top].face = v1;
+        cube.twist(Twist::Down); // make the top face into the back face
+        cube.twist(Twist::Right);
+        cube.twist(Twist::Right);
+        assert_eq!(v2, cube.faces[cube.forward].face);
+    }
+
+    #[test]
+    fn test_cube_rotate_4_times() {
+        let mut cube = Cube::new(3);
+
+        let v1 = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+
+        cube.faces[cube.top].face = v1.clone();
+        cube.twist(Twist::Down); // make the top face into the back face
+        cube.twist(Twist::Down); // make the top face into the back face
+        cube.twist(Twist::Down); // make the top face into the back face
+        cube.twist(Twist::Down); // make the top face into the back face
+        assert_eq!(v1, cube.faces[cube.top].face);
+    }
+
+    #[test]
+    fn test_cube_linear_right_down() {
+        let mut cube = Cube::new(80);
+        cube.linear_action(Instruction::Col(9, 9));
+        cube.twist(Twist::Right);
+        cube.twist(Twist::Down);
+        assert_eq!(cube.faces[cube.back].face[70], vec![10; 80]);
+    }
+
+    #[test]
+    fn test_cube_linear_left_down() {
+        let mut cube = Cube::new(80);
+        cube.linear_action(Instruction::Col(9, 9));
+        cube.twist(Twist::Left);
+        cube.twist(Twist::Down);
+        assert_eq!(cube.faces[cube.back].face[9], vec![10; 80]);
+    }
+
+    #[test]
+    fn test_cube_linear_right_up() {
+        let mut cube = Cube::new(80);
+        cube.linear_action(Instruction::Col(9, 9));
+        cube.twist(Twist::Right);
+        cube.twist(Twist::Up);
+        assert_eq!(cube.faces[cube.back].face[9], vec![10; 80]);
+    }
+
+    #[test]
+    fn test_cube_linear_left_up() {
+        let mut cube = Cube::new(80);
+        cube.linear_action(Instruction::Col(9, 9));
+        cube.twist(Twist::Left);
+        cube.twist(Twist::Up);
+        assert_eq!(cube.faces[cube.back].face[70], vec![10; 80]);
     }
 }

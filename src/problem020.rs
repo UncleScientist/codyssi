@@ -20,6 +20,7 @@ pub fn run() -> Result<(), Error> {
         cube.twist(*twist);
         cube.action(*inst);
     }
+
     let mut values = cube.absorption;
     values.sort();
     println!(
@@ -30,7 +31,7 @@ pub fn run() -> Result<(), Error> {
     println!("  part 2 = {}", cube.dominant_sums());
 
     let mut cube = Cube::new(80);
-    cube.action(instructions[0]);
+    cube.linear_action(instructions[0]);
     for (twist, inst) in twists.iter().zip(instructions.iter().skip(1)) {
         cube.twist(*twist);
         cube.linear_action(*inst);
@@ -69,8 +70,8 @@ impl CubeFace {
         let size = self.face.len();
         let mut result = vec![vec![0; size]; size];
         for i in 0..size {
-            for j in 0..size {
-                result[j][size - 1 - i] = self.face[i][j];
+            for (j, row) in result.iter_mut().enumerate() {
+                row[size - 1 - i] = self.face[i][j];
             }
         }
         self.face = result;
@@ -83,8 +84,8 @@ impl CubeFace {
         let size = self.face.len();
         let mut result = vec![vec![0; size]; size];
         for i in 0..size {
-            for j in 0..size {
-                result[size - 1 - j][i] = self.face[i][j];
+            for (j, row) in result.iter_mut().enumerate() {
+                row[i] = self.face[i][size - 1 - j];
             }
         }
         self.face = result;

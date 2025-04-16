@@ -1,7 +1,13 @@
-use std::{collections::HashMap, io::Error, str::FromStr};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    io::Error,
+    ops::{Deref, DerefMut},
+    str::FromStr,
+};
 
 pub fn run() -> Result<(), Error> {
-    let sections = crate::read_sections(0, "Spiralling Stairs")?;
+    let sections = crate::read_sections(21, "Spiralling Stairs")?;
 
     let stairs = sections[0]
         .iter()
@@ -10,6 +16,7 @@ pub fn run() -> Result<(), Error> {
     for (idx, stair) in stairs.iter().enumerate() {
         assert_eq!(idx, stair.id);
     }
+    let last_step = stairs[0].last_step;
 
     let (_, magnitudes) = sections[1][0].split_once(" : ").unwrap();
     let magnitudes = magnitudes
@@ -20,9 +27,111 @@ pub fn run() -> Result<(), Error> {
     let mut ways = CountWays::default();
     println!(
         "  part 1 = {}",
-        ways.count((stairs[0].to - stairs[0].from) as u128, &magnitudes)
+        ways.count(
+            (stairs[0].last_step - stairs[0].first_step) as u128,
+            &magnitudes
+        )
     );
+
+    let mut counter = CountGraphWays::default();
+    let graph = Graph::generate_graph(&stairs, Location::new(0, last_step));
+    let max = *magnitudes.iter().max().unwrap();
+    let mags = magnitudes.into_iter().collect::<HashSet<_>>();
+    println!("{max} -- {mags:?} -- {}", graph.last);
+    let start = Location::new(0, 0);
+    println!("  part 2 = {}", counter.count(&start, &graph, &mags, max));
+    println!("{:?}", counter.cache);
+    // 12946467849532396040964389906884953
+    // 12734787586522322457613516062974752
     Ok(())
+}
+
+type GraphType = HashMap<Location, HashSet<Location>>;
+struct Graph {
+    last: Location,
+    graph: GraphType,
+}
+
+impl Graph {
+    fn new(last: Location) -> Self {
+        Self {
+            last,
+            graph: HashMap::new(),
+        }
+    }
+
+    fn generate_graph(stairs: &[Stair], last: Location) -> Graph {
+        let mut graph = Graph::new(last);
+        for stair in stairs {
+            if let StairLoc::Stair(staircase) = stair.start {
+                graph
+                    .entry(Location::new(staircase, stair.first_step))
+                    .or_default()
+                    .insert(Location::new(stair.id, stair.first_step));
+            }
+            if let StairLoc::Stair(staircase) = stair.end {
+                graph
+                    .entry(Location::new(stair.id, stair.last_step))
+                    .or_default()
+                    .insert(Location::new(staircase, stair.last_step));
+            }
+            let mut current = Location::new(stair.id, stair.first_step);
+            while current.step != stair.last_step {
+                graph
+                    .entry(current.clone())
+                    .or_default()
+                    .insert(current.next());
+                current = current.next();
+            }
+        }
+        graph
+    }
+
+    fn paths_from(
+        &self,
+        loc: &Location,
+        max: u128,
+        allowed: &HashSet<u128>,
+    ) -> Option<HashSet<Location>> {
+        let mut queue = Vec::from(&[(loc.clone(), 0)]);
+        let mut visited = HashSet::new();
+        let mut found = HashSet::new();
+        while let Some((loc, dist)) = queue.pop() {
+            if visited.insert(loc.clone()) {
+                if let Some(set) = self.get(&loc) {
+                    let next_dist = dist + 1;
+                    for next in set {
+                        assert!(next_dist <= max);
+                        if allowed.contains(&next_dist) {
+                            found.insert(next.clone());
+                        }
+                        if next_dist < max {
+                            queue.push((next.clone(), next_dist));
+                        }
+                    }
+                }
+            }
+        }
+        if found.is_empty() {
+            None
+        } else {
+            Some(found)
+        }
+    }
+}
+
+impl DerefMut for Graph {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.graph
+    }
+}
+
+impl Deref for Graph {
+    type Target = GraphType;
+
+    fn deref(&self) -> &Self::Target {
+        &self.graph
+    }
 }
 
 #[derive(Debug, Default)]
@@ -48,19 +157,39 @@ impl CountWays {
     }
 }
 
+#[derive(Debug, Default)]
+struct CountGraphWays {
+    cache: HashMap<Location, u128>,
+}
+
+impl CountGraphWays {
+    fn count(&mut self, start: &Location, graph: &Graph, mags: &HashSet<u128>, max: u128) -> u128 {
+        if let Some(result) = self.cache.get(start) {
+            return *result;
+        }
+        let mut total = 0;
+        if let Some(steps) = graph.paths_from(start, max, mags) {
+            println!("> {start:?} -> {steps:?}");
+            for step in steps {
+                if step == graph.last {
+                    total += 1;
+                } else {
+                    total += self.count(&step, graph, mags, max);
+                }
+            }
+        }
+        self.cache.insert(start.clone(), total);
+        total
+    }
+}
+
 #[derive(Debug)]
 struct Stair {
     id: usize,
-    from: usize,
-    to: usize,
+    first_step: usize,
+    last_step: usize,
     start: StairLoc,
     end: StairLoc,
-}
-
-impl Stair {
-    fn reaches(&self, start: usize, dist: usize) -> bool {
-        start + dist <= self.to
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -80,8 +209,8 @@ impl FromStr for Stair {
         let start_end = parts[2].split(' ').collect::<Vec<_>>();
         Ok(Stair {
             id: id - 1,
-            from: from.parse().unwrap(),
-            to: to.parse().unwrap(),
+            first_step: from.parse().unwrap(),
+            last_step: to.parse().unwrap(),
             start: start_end[1].parse::<StairLoc>().unwrap(),
             end: start_end[3].parse::<StairLoc>().unwrap(),
         })
@@ -100,7 +229,7 @@ impl FromStr for StairLoc {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Copy, Clone)]
 struct Location {
     staircase: usize,
     step: usize,
@@ -110,47 +239,32 @@ impl Location {
     fn new(staircase: usize, step: usize) -> Self {
         Self { staircase, step }
     }
+
+    fn next(&self) -> Self {
+        Self::new(self.staircase, self.step + 1)
+    }
 }
 
-// TODO: delete me
-fn get_moves(stairs: &[Stair], moves: &[usize], loc: &Location) -> HashMap<Location, u128> {
-    let mut result = HashMap::new();
-    for dist in moves {
-        if stairs[loc.staircase].reaches(loc.step, *dist) {
-            *result
-                .entry(Location::new(loc.staircase, loc.step + dist))
-                .or_default() += 1;
-        }
-        let my_stair = &stairs[loc.staircase];
-        for stair in stairs {
-            if stair.id == loc.staircase {
-                continue;
-            }
-            if stair.start == StairLoc::Stair(loc.staircase) && stair.from < loc.step + dist - 1 {
-                *result
-                    .entry(Location::new(stair.id, loc.step + dist - 1))
-                    .or_default() += 1;
-            }
-            if stair.id == 4 {
-                println!(
-                    "{stair:?}, loc={}, dist={dist}, my_end={my_stair:?}",
-                    loc.step
-                );
-            }
-            if my_stair.to <= loc.step + dist - 1 && StairLoc::Stair(stair.id) == my_stair.end {
-                println!("{stair:?} -> {} + {dist}", loc.step);
-                *result
-                    .entry(Location::new(stair.id, loc.step + dist - 1))
-                    .or_default() += 1;
-            }
-        }
+impl std::fmt::Debug for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self}")
     }
-    result
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "S{}_{}", self.staircase + 1, self.step)
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    const TEST_TINY: [&str; 2] = [
+        "S1 : 0 -> 6 : FROM START TO END",
+        "S2 : 2 -> 3 : FROM S1 TO S1",
+    ];
 
     const TEST_INPUT: [&str; 10] = [
         "S1 : 0 -> 99 : FROM START TO END",
@@ -166,19 +280,34 @@ mod test {
     ];
 
     #[test]
+    fn test_tiny_graph() {
+        let stairs = TEST_TINY
+            .iter()
+            .map(|stair| stair.parse::<Stair>().unwrap())
+            .collect::<Vec<_>>();
+        let graph = Graph::generate_graph(&stairs, Location::new(0, 6));
+
+        let mut ways = CountGraphWays::default();
+        let start = Location::new(0, 0);
+        let mags = HashSet::from([1, 3]);
+        assert_eq!(17, ways.count(&start, &graph, &mags, 3));
+    }
+
+    #[test]
     fn test_generate_moves() {
-        let stairs = TEST_INPUT
+        let _stairs = TEST_INPUT
             .iter()
             .map(|stair| stair.parse::<Stair>().unwrap())
             .collect::<Vec<_>>();
 
-        let moves = get_moves(&stairs, &[1, 3, 5, 6], &Location::new(0, 6));
+        /*let moves = get_moves(&stairs, &[1, 3, 5, 6], &Location::new(0, 6));
         assert!(moves.contains_key(&Location::new(0, 7)));
         assert!(moves.contains_key(&Location::new(1, 11)));
 
         let moves = get_moves(&stairs, &[1, 3, 5, 6], &Location::new(8, 36));
         dbg!(&moves);
         assert!(false);
+        */
     }
 }
 

@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     collections::{HashMap, HashSet},
     fmt::Display,
     io::Error,
@@ -32,17 +33,17 @@ pub fn run() -> Result<(), Error> {
             &magnitudes
         )
     );
+    // 478223432388016434591719703
 
     let mut counter = CountGraphWays::default();
     let graph = Graph::generate_graph(&stairs, Location::new(0, last_step));
     let max = *magnitudes.iter().max().unwrap();
     let mags = magnitudes.into_iter().collect::<HashSet<_>>();
-    println!("{max} -- {mags:?} -- {}", graph.last);
+
     let start = Location::new(0, 0);
     println!("  part 2 = {}", counter.count(&start, &graph, &mags, max));
-    println!("{:?}", counter.cache);
-    // 12946467849532396040964389906884953
-    // 12734787586522322457613516062974752
+    // 13107145891947202031341696509465277
+
     Ok(())
 }
 
@@ -77,10 +78,7 @@ impl Graph {
             }
             let mut current = Location::new(stair.id, stair.first_step);
             while current.step != stair.last_step {
-                graph
-                    .entry(current.clone())
-                    .or_default()
-                    .insert(current.next());
+                graph.entry(current).or_default().insert(current.next());
                 current = current.next();
             }
         }
@@ -93,20 +91,21 @@ impl Graph {
         max: u128,
         allowed: &HashSet<u128>,
     ) -> Option<HashSet<Location>> {
-        let mut queue = Vec::from(&[(loc.clone(), 0)]);
+        let mut queue = Vec::from(&[(*loc, 0)]);
         let mut visited = HashSet::new();
         let mut found = HashSet::new();
+
         while let Some((loc, dist)) = queue.pop() {
-            if visited.insert(loc.clone()) {
+            if visited.insert((loc, dist)) {
                 if let Some(set) = self.get(&loc) {
                     let next_dist = dist + 1;
                     for next in set {
                         assert!(next_dist <= max);
                         if allowed.contains(&next_dist) {
-                            found.insert(next.clone());
+                            found.insert(*next);
                         }
                         if next_dist < max {
-                            queue.push((next.clone(), next_dist));
+                            queue.push((*next, next_dist));
                         }
                     }
                 }
@@ -146,10 +145,10 @@ impl CountWays {
         }
         let mut total = 0;
         for mag in mags {
-            if *mag == remaining {
-                total += 1;
-            } else if *mag < remaining {
-                total += self.count(remaining - *mag, mags);
+            match (*mag).cmp(&remaining) {
+                Ordering::Less => total += self.count(remaining - *mag, mags),
+                Ordering::Equal => total += 1,
+                Ordering::Greater => {}
             }
         }
         self.cache.insert(remaining, total);
@@ -169,7 +168,6 @@ impl CountGraphWays {
         }
         let mut total = 0;
         if let Some(steps) = graph.paths_from(start, max, mags) {
-            println!("> {start:?} -> {steps:?}");
             for step in steps {
                 if step == graph.last {
                     total += 1;
@@ -178,7 +176,7 @@ impl CountGraphWays {
                 }
             }
         }
-        self.cache.insert(start.clone(), total);
+        self.cache.insert(*start, total);
         total
     }
 }
@@ -291,6 +289,27 @@ mod test {
         let start = Location::new(0, 0);
         let mags = HashSet::from([1, 3]);
         assert_eq!(17, ways.count(&start, &graph, &mags, 3));
+    }
+
+    #[test]
+    fn test_134() {
+        let stairs = TEST_TINY
+            .iter()
+            .map(|stair| stair.parse::<Stair>().unwrap())
+            .collect::<Vec<_>>();
+        let graph = Graph::generate_graph(&stairs, Location::new(0, 6));
+        let allowed = HashSet::from([1, 3, 4]);
+        let Some(paths) = graph.paths_from(&Location::new(0, 2), 4, &allowed) else {
+            panic!("no paths");
+        };
+        // straight path
+        assert!(paths.contains(&Location::new(0, 3)));
+        assert!(paths.contains(&Location::new(0, 5)));
+        assert!(paths.contains(&Location::new(0, 6)));
+
+        // path through S2
+        assert!(paths.contains(&Location::new(1, 2)));
+        assert!(paths.contains(&Location::new(0, 4)));
     }
 
     #[test]

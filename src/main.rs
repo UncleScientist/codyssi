@@ -19,8 +19,10 @@ mod problem018;
 mod problem019;
 mod problem020;
 mod problem021;
+mod problem022;
 
 fn main() {
+    let _ = crate::problem022::run();
     let _ = crate::problem021::run();
     let _ = crate::problem020::run();
     let _ = crate::problem019::run();
@@ -68,6 +70,7 @@ pub fn read_sections<S: AsRef<str>>(
         .collect())
 }
 
+// read up to first blank line (makes testing easier) or end of file
 pub fn read_and_split<S: AsRef<str>>(num: usize, title: S) -> Result<Vec<String>, std::io::Error> {
     let path = if num == 0 {
         "test.txt".to_string()
@@ -76,6 +79,13 @@ pub fn read_and_split<S: AsRef<str>>(num: usize, title: S) -> Result<Vec<String>
     };
     let data = std::fs::read_to_string(path)?;
     println!("Puzzle {num}: {}", title.as_ref());
+
+    let data = if let Some((data, _)) = data.split_once("\n\n") {
+        data
+    } else {
+        &data
+    };
+
     Ok(data
         .trim()
         .split('\n')

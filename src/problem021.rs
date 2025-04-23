@@ -44,13 +44,13 @@ pub fn run() -> Result<(), Error> {
     println!("  part 2 = {}", counter.count(&start, &graph, &mags, max));
     // 13107145891947202031341696509465277
 
-    // S1_0-S1_1-S2_3-S1_3-S1_4-S1_5-S1_6
     let answer = path_for_target(100000000000000000000000000000, &graph, &counter, &mags);
-    if answer == "S1_0-S1_1-S1_2-S1_3-S1_4-S1_5-S1_6-S1_7-S1_8-S1_9-S1_10-S1_11-S1_12-S1_13-S1_14-S1_16-S1_17-S1_18-S1_19-S1_24-S1_26-S1_29-S95_31-S95_32-S87_33-S87_34-S87_35-S87_36-S87_37-S87_38-S87_39-S87_40-S87_41-S87_49-S87_51-S87_53-S87_55-S87_56-S11_58-S11_59-S11_60-S1_61-S1_64-S1_65-S2_65-S2_68-S2_71-S2_72-S2_73-S2_74-S2_75-S2_76-S19_77-S19_78-S31_79-S31_80-S31_81-S93_81-S93_83-S93_85-S93_87-S17_89-S17_90-S7_90-S1_97".to_string() 
+    if answer == "S1_0-S1_1-S1_2-S1_3-S1_4-S1_5-S1_6-S1_7-S1_8-S1_9-S1_10-S1_11-S1_12-S1_13-S1_14-S1_16-S1_17-S1_18-S1_19-S1_24-S1_26-S1_29-S95_31-S95_32-S87_33-S87_34-S87_35-S87_36-S87_37-S87_38-S87_39-S87_40-S87_41-S87_49-S87_51-S87_53-S87_55-S87_56-S11_58-S11_59-S11_60-S1_61-S1_64-S1_65-S2_65-S2_68-S2_71-S2_72-S2_73-S2_74-S2_75-S2_76-S19_77-S19_78-S31_79-S31_80-S31_81-S93_81-S93_83-S93_85-S93_87-S17_89-S17_90-S7_90-S1_97"
     || answer == "S1_0-S1_1-S1_2-S1_3-S1_4-S1_5-S1_6-S1_7-S1_8-S1_9-S1_10-S1_11-S1_12-S1_13-S1_14-S1_16-S1_17-S1_18-S1_19-S1_24-S1_26-S1_29-S95_31-S95_32-S87_33-S87_34-S87_35-S87_36-S87_37-S87_38-S87_39-S87_40-S87_41-S87_49-S87_51-S87_53-S87_55-S87_56-S11_58-S11_59-S11_60-S1_61-S1_64-S1_65-S2_65-S2_68-S2_71-S2_72-S2_73-S2_74-S2_75-S2_76-S19_77-S19_78-S31_79-S31_80-S31_81-S93_81-S93_83-S93_85-S93_87-S17_89-S17_90-S7_90-S99_94-S99_95-S1_96-S1_97" {
         println!("bad answer");
     }
     println!("  part 3 = {answer}");
+    // S1_0-S1_1-S1_2-S1_3-S1_4-S1_5-S1_6-S1_7-S1_8-S1_9-S1_10-S1_11-S1_12-S1_13-S1_14-S1_16-S1_17-S1_18-S1_19-S1_24-S1_26-S1_29-S95_31-S95_32-S87_33-S87_34-S87_35-S87_36-S87_37-S87_38-S87_39-S87_40-S87_41-S87_49-S87_51-S87_53-S87_55-S87_56-S11_58-S11_59-S11_60-S1_61-S1_64-S1_65-S2_65-S2_68-S2_71-S2_72-S2_73-S2_74-S2_75-S2_76-S19_77-S19_78-S31_79-S31_80-S31_81-S93_81-S93_83-S93_85-S93_87-S17_89-S17_90-S7_90-S99_94-S99_95-S99_96-S1_96-S1_97
 
     Ok(())
 }
@@ -63,37 +63,36 @@ fn path_for_target(
 ) -> String {
     let max = *mags.iter().max().unwrap();
     let mut current = Location::new(0, 0);
-    let mut answer = Vec::from([current.clone()]);
-    'done: while let Some(neighbors) = graph.paths_from(&current, max, &mags) {
+    let mut answer = Vec::from([current]);
+    'next: while let Some(neighbors) = graph.paths_from(&current, max, mags) {
         let mut neighbors = neighbors.iter().collect::<Vec<_>>();
-        let last = neighbors.len() == 1;
-        // if neighbors.len() == 1 {
-        // answer.push(*neighbors[0]);
-        // break;
-        // }
         neighbors.sort();
-        println!("{target:30} | {current} -> {neighbors:?}");
+        let last = *neighbors.last().unwrap();
+
         for neighbor in neighbors {
-            let Some(ways) = counter.cache.get(&neighbor) else {
-                if last {
+            let Some(ways) = counter.cache.get(neighbor) else {
+                if neighbor == last {
                     answer.push(*neighbor);
-                    break 'done;
+                    current = *neighbor;
+                    continue 'next;
+                } else {
+                    continue;
                 }
-                continue;
             };
             if *ways < target {
-                println!("{:30} | ways = {ways}, target = {target} @ {neighbor}", "");
                 target -= *ways;
-                println!("{:30} |     new target = {target}", "");
+                if neighbor == last {
+                    current = *neighbor;
+                    answer.push(*neighbor);
+                }
             } else {
                 current = *neighbor;
                 answer.push(*neighbor);
-                println!("{:30} | {ways} ways, added {current}", "");
                 break;
             }
         }
     }
-    println!("final target = {target}");
+
     answer
         .into_iter()
         .map(|a| a.to_string())
@@ -373,6 +372,43 @@ mod test {
     }
 
     #[test]
+    fn test_all_ways() {
+        let paths: [&str; 17] = [
+            "S1_0-S1_1-S1_2-S1_3-S1_4-S1_5-S1_6",
+            "S1_0-S1_1-S1_2-S1_3-S1_6",
+            "S1_0-S1_1-S1_2-S1_5-S1_6",
+            "S1_0-S1_1-S1_2-S2_2-S1_4-S1_5-S1_6",
+            "S1_0-S1_1-S1_2-S2_2-S2_3-S1_3-S1_4-S1_5-S1_6",
+            "S1_0-S1_1-S1_2-S2_2-S2_3-S1_3-S1_6",
+            "S1_0-S1_1-S1_2-S2_2-S2_3-S1_5-S1_6",
+            "S1_0-S1_1-S1_4-S1_5-S1_6",
+            "S1_0-S1_1-S2_3-S1_3-S1_4-S1_5-S1_6",
+            "S1_0-S1_1-S2_3-S1_3-S1_6",
+            "S1_0-S1_1-S2_3-S1_5-S1_6",
+            "S1_0-S1_3-S1_4-S1_5-S1_6",
+            "S1_0-S1_3-S1_6",
+            "S1_0-S2_2-S1_4-S1_5-S1_6",
+            "S1_0-S2_2-S2_3-S1_3-S1_4-S1_5-S1_6",
+            "S1_0-S2_2-S2_3-S1_3-S1_6",
+            "S1_0-S2_2-S2_3-S1_5-S1_6",
+        ];
+        let stairs = TEST_TINY
+            .iter()
+            .map(|stair| stair.parse::<Stair>().unwrap())
+            .collect::<Vec<_>>();
+        let graph = Graph::generate_graph(&stairs, Location::new(0, 6));
+        let allowed = HashSet::from([1, 3]);
+        let mut counter = CountGraphWays::default();
+        counter.count(&Location::new(0, 0), &graph, &allowed, 3);
+        for (idx, path) in paths.iter().enumerate() {
+            assert_eq!(
+                path.to_string(),
+                path_for_target(idx as u128 + 1, &graph, &counter, &allowed)
+            );
+        }
+    }
+
+    #[test]
     fn test_rank_39() {
         let stairs = TEST_MID
             .iter()
@@ -398,6 +434,8 @@ mod test {
         counter.count(&Location::new(0, 0), &graph, &allowed, 6);
         let answer = path_for_target(73287437832782344, &graph, &counter, &allowed);
         assert_eq!("S1_0-S1_1-S1_2-S1_3-S1_4-S1_5-S1_6-S1_7-S1_8-S1_9-S1_10-S1_11-S1_12-S1_13-S1_14-S1_15-S1_16-S1_17-S1_18-S1_19-S1_20-S1_21-S1_22-S1_23-S1_24-S1_25-S1_26-S1_29-S5_29-S5_30-S5_35-S5_36-S5_37-S5_38-S5_39-S5_40-S5_45-S5_46-S5_47-S5_48-S5_51-S5_52-S5_53-S5_54-S5_55-S5_58-S5_59-S5_62-S5_63-S5_64-S5_65-S5_66-S5_67-S5_70-S5_71-S5_72-S1_76-S1_79-S1_80-S3_84-S3_85-S3_86-S3_87-S3_90-S1_92-S1_93-S1_94-S1_95-S1_98-S1_99".to_string(), answer);
+        let answer = path_for_target(100000000000000000000000000000, &graph, &counter, &allowed);
+        assert_eq!("S1_0-S1_6-S2_11-S2_17-S2_23-S2_29-S9_34-S9_37-S5_42-S5_48-S5_54-S5_60-S5_66-S5_72-S5_73-S5_74-S1_79-S3_84-S8_88-S8_89-S8_90-S3_90-S3_91-S1_96-S1_99".to_string(), answer);
     }
 }
 

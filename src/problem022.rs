@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     io::Error,
     str::FromStr,
 };
@@ -15,12 +15,18 @@ pub fn run() -> Result<(), Error> {
         .map(|line| line.parse::<Rule>().unwrap())
         .collect::<Vec<_>>();
 
-    let space = Space::new(rules, (10, 15, 60));
-    // let space = Space::new(rules, (3, 3, 5));
+    let mut space = Space::new(rules, (10, 15, 60));
+    // let mut space = Space::new(rules, (3, 3, 5));
 
     println!("  part 1 = {}", space.debris.len());
 
-    let mut queue = VecDeque::from([((0, 0, 0, 0), 0_isize)]);
+    // prime the pump
+    space.count_hits((1, 1, 1), 0);
+
+    //
+    // Part 2
+    //
+    let mut queue = VecDeque::from([((0, 0, 0), 0_usize)]);
     let mut visited = HashSet::new();
 
     while let Some((pos, time)) = queue.pop_front() {
@@ -38,7 +44,7 @@ pub fn run() -> Result<(), Error> {
                 (0, 0, 1),
                 (0, 0, -1),
             ] {
-                let newpos = (pos.0 + delta.0, pos.1 + delta.1, pos.2 + delta.2, 0);
+                let newpos = (pos.0 + delta.0, pos.1 + delta.1, pos.2 + delta.2);
                 if !space.in_range(newpos) {
                     continue;
                 }
@@ -50,6 +56,40 @@ pub fn run() -> Result<(), Error> {
         }
     }
 
+    //
+    // Part 3
+    //
+    let mut queue = VecDeque::from([((0, 0, 0), 0_usize, 0_usize)]);
+    let mut visited = HashSet::new();
+
+    while let Some((pos, time, hits)) = queue.pop_front() {
+        if space.found_exit(pos) {
+            println!("  part 3 = {}", time);
+            break;
+        }
+        if visited.insert((pos, time, hits)) {
+            for delta in [
+                (0, 0, 0),
+                (1, 0, 0),
+                (-1, 0, 0),
+                (0, 1, 0),
+                (0, -1, 0),
+                (0, 0, 1),
+                (0, 0, -1),
+            ] {
+                let newpos = (pos.0 + delta.0, pos.1 + delta.1, pos.2 + delta.2);
+                if !space.in_range(newpos) {
+                    continue;
+                }
+                let newtime = time + 1;
+                let newhits = hits + space.count_hits(newpos, newtime);
+                if newhits > 3 {
+                    continue;
+                }
+                queue.push_back((newpos, newtime, newhits));
+            }
+        }
+    }
     Ok(())
 }
 
@@ -58,6 +98,7 @@ struct Space {
     _rules: Vec<Rule>,
     debris: Vec<Debris>,
     extent: (isize, isize, isize),
+    cache: Vec<HashMap<(isize, isize, isize), usize>>,
 }
 
 impl Space {
@@ -67,32 +108,51 @@ impl Space {
             _rules: rules,
             debris,
             extent,
+            cache: Vec::new(),
         }
     }
 
-    fn found_exit(&self, pos: (isize, isize, isize, isize)) -> bool {
-        pos.0 == self.extent.0 - 1
-            && pos.1 == self.extent.1 - 1
-            && pos.2 == self.extent.2 - 1
-            && pos.3 == 0
+    fn found_exit(&self, pos: (isize, isize, isize)) -> bool {
+        pos.0 == self.extent.0 - 1 && pos.1 == self.extent.1 - 1 && pos.2 == self.extent.2 - 1
     }
 
-    fn collides(&self, pos: (isize, isize, isize, isize), time: isize) -> bool {
-        if pos == (0, 0, 0, 0) {
+    fn collides(&mut self, pos: (isize, isize, isize), time: usize) -> bool {
+        if pos == (0, 0, 0) {
             return false;
         }
-        self.debris
-            .iter()
-            .any(|debris| debris.at(time, &self.extent) == pos)
+        self.count_hits(pos, time) != 0
     }
 
-    fn in_range(&self, pos: (isize, isize, isize, isize)) -> bool {
+    fn in_range(&self, pos: (isize, isize, isize)) -> bool {
         !(pos.0 < 0
             || pos.0 >= self.extent.0
             || pos.1 < 0
             || pos.1 >= self.extent.1
             || pos.2 < 0
             || pos.2 >= self.extent.2)
+    }
+
+    fn count_hits(&mut self, pos: (isize, isize, isize), time: usize) -> usize {
+        if pos == (0, 0, 0) {
+            return 0;
+        }
+        if time >= self.cache.len() {
+            assert_eq!(time, self.cache.len());
+            let mut map = HashMap::new();
+            for dpos in self
+                .debris
+                .iter()
+                .map(|debris| debris.at(time, &self.extent))
+            {
+                if dpos.3 != 0 {
+                    continue;
+                }
+                *map.entry((dpos.0, dpos.1, dpos.2)).or_default() += 1;
+            }
+            self.cache.push(map);
+        }
+
+        *self.cache[time].entry(pos).or_default()
     }
 }
 
@@ -137,7 +197,8 @@ struct Debris {
 }
 
 impl Debris {
-    fn at(&self, time: isize, extent: &(isize, isize, isize)) -> (isize, isize, isize, isize) {
+    fn at(&self, time: usize, extent: &(isize, isize, isize)) -> (isize, isize, isize, isize) {
+        let time = time as isize;
         let x = (self.pos.0 + time * self.vel.0).rem_euclid(extent.0);
         let y = (self.pos.1 + time * self.vel.1).rem_euclid(extent.1);
         let z = (self.pos.2 + time * self.vel.2).rem_euclid(extent.2);

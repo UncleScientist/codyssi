@@ -1,4 +1,8 @@
-use std::{io::Error, str::FromStr};
+use std::{
+    collections::{HashSet, VecDeque},
+    io::Error,
+    str::FromStr,
+};
 
 // real input, and test input 2 = (10, 15, 60)
 // test input 1 = (3, 3, 5)
@@ -10,15 +14,86 @@ pub fn run() -> Result<(), Error> {
         .iter()
         .map(|line| line.parse::<Rule>().unwrap())
         .collect::<Vec<_>>();
-    println!(
-        "  part 1 = {}",
-        rules
-            .iter()
-            .map(|rule| rule.count_debris((10, 15, 60)))
-            .sum::<usize>()
-    );
+
+    let space = Space::new(rules, (10, 15, 60));
+    // let space = Space::new(rules, (3, 3, 5));
+
+    println!("  part 1 = {}", space.debris.len());
+
+    let mut queue = VecDeque::from([((0, 0, 0, 0), 0_isize)]);
+    let mut visited = HashSet::new();
+
+    while let Some((pos, time)) = queue.pop_front() {
+        if space.found_exit(pos) {
+            println!("  part 2 = {}", time);
+            break;
+        }
+        if visited.insert((pos, time)) {
+            for delta in [
+                (0, 0, 0),
+                (1, 0, 0),
+                (-1, 0, 0),
+                (0, 1, 0),
+                (0, -1, 0),
+                (0, 0, 1),
+                (0, 0, -1),
+            ] {
+                let newpos = (pos.0 + delta.0, pos.1 + delta.1, pos.2 + delta.2, 0);
+                if !space.in_range(newpos) {
+                    continue;
+                }
+                let newtime = time + 1;
+                if !space.collides(newpos, newtime) {
+                    queue.push_back((newpos, newtime));
+                }
+            }
+        }
+    }
 
     Ok(())
+}
+
+#[derive(Debug)]
+struct Space {
+    _rules: Vec<Rule>,
+    debris: Vec<Debris>,
+    extent: (isize, isize, isize),
+}
+
+impl Space {
+    fn new(rules: Vec<Rule>, extent: (isize, isize, isize)) -> Self {
+        let debris = rules.iter().flat_map(|rule| rule.debris(&extent)).collect();
+        Self {
+            _rules: rules,
+            debris,
+            extent,
+        }
+    }
+
+    fn found_exit(&self, pos: (isize, isize, isize, isize)) -> bool {
+        pos.0 == self.extent.0 - 1
+            && pos.1 == self.extent.1 - 1
+            && pos.2 == self.extent.2 - 1
+            && pos.3 == 0
+    }
+
+    fn collides(&self, pos: (isize, isize, isize, isize), time: isize) -> bool {
+        if pos == (0, 0, 0, 0) {
+            return false;
+        }
+        self.debris
+            .iter()
+            .any(|debris| debris.at(time, &self.extent) == pos)
+    }
+
+    fn in_range(&self, pos: (isize, isize, isize, isize)) -> bool {
+        !(pos.0 < 0
+            || pos.0 >= self.extent.0
+            || pos.1 < 0
+            || pos.1 >= self.extent.1
+            || pos.2 < 0
+            || pos.2 >= self.extent.2)
+    }
 }
 
 #[derive(Debug)]
@@ -29,24 +104,45 @@ struct Rule {
     a: isize,
     base: isize,
     remainder: isize,
-    _velocity: (isize, isize, isize, isize),
+    velocity: (isize, isize, isize, isize),
 }
 
 impl Rule {
-    fn count_debris(&self, (xsize, ysize, zsize): (isize, isize, isize)) -> usize {
-        let mut count = 0;
-        for x in 0..xsize {
-            for y in 0..ysize {
-                for z in 0..zsize {
+    fn debris(&self, (xsize, ysize, zsize): &(isize, isize, isize)) -> Vec<Debris> {
+        let mut result = Vec::new();
+        for x in 0..*xsize {
+            for y in 0..*ysize {
+                for z in 0..*zsize {
                     for a in [-1, 0, 1] {
                         let sum = x * self.x + y * self.y + z * self.z + a * self.a;
                         let rem = sum.rem_euclid(self.base);
-                        count += (rem == self.remainder) as usize;
+                        if rem == self.remainder {
+                            result.push(Debris {
+                                pos: (x, y, z, a),
+                                vel: self.velocity,
+                            });
+                        }
                     }
                 }
             }
         }
-        count
+        result
+    }
+}
+
+#[derive(Debug)]
+struct Debris {
+    pos: (isize, isize, isize, isize),
+    vel: (isize, isize, isize, isize),
+}
+
+impl Debris {
+    fn at(&self, time: isize, extent: &(isize, isize, isize)) -> (isize, isize, isize, isize) {
+        let x = (self.pos.0 + time * self.vel.0).rem_euclid(extent.0);
+        let y = (self.pos.1 + time * self.vel.1).rem_euclid(extent.1);
+        let z = (self.pos.2 + time * self.vel.2).rem_euclid(extent.2);
+        let a = (self.pos.3 + time * self.vel.3 + 1).rem_euclid(3) - 1;
+        (x, y, z, a)
     }
 }
 
@@ -83,7 +179,7 @@ impl FromStr for Rule {
             a,
             base,
             remainder,
-            _velocity,
+            velocity: _velocity,
         })
     }
 }
@@ -97,7 +193,7 @@ mod test {
         let rule = "RULE 1: 8x+2y+3z+5a DIVIDE 9 HAS REMAINDER 4 | DEBRIS VELOCITY (0, -1, 0, 1)"
             .parse::<Rule>()
             .unwrap();
-        assert_eq!(14, rule.count_debris((3, 3, 5)));
+        assert_eq!(14, rule.debris(&(3, 3, 5)).len());
     }
 
     #[test]
@@ -105,7 +201,7 @@ mod test {
         let rule = "RULE 2: 4x+7y+10z+9a DIVIDE 5 HAS REMAINDER 4 | DEBRIS VELOCITY (0, 1, 0, 1)"
             .parse::<Rule>()
             .unwrap();
-        assert_eq!(30, rule.count_debris((3, 3, 5)));
+        assert_eq!(30, rule.debris(&(3, 3, 5)).len());
     }
 
     #[test]
@@ -113,7 +209,7 @@ mod test {
         let rule = "RULE 3: 6x+3y+7z+3a DIVIDE 4 HAS REMAINDER 1 | DEBRIS VELOCITY (-1, 0, 1, -1)"
             .parse::<Rule>()
             .unwrap();
-        assert_eq!(34, rule.count_debris((3, 3, 5)));
+        assert_eq!(34, rule.debris(&(3, 3, 5)).len());
     }
 
     #[test]
@@ -122,6 +218,18 @@ mod test {
             "RULE 4: 3x+11y+11z+3a DIVIDE 2 HAS REMAINDER 1 | DEBRIS VELOCITY (-1, 1, 0, -1)"
                 .parse::<Rule>()
                 .unwrap();
-        assert_eq!(68, rule.count_debris((3, 3, 5)));
+        assert_eq!(68, rule.debris(&(3, 3, 5)).len());
+    }
+
+    #[test]
+    fn test_debris_movement() {
+        let debris = Debris {
+            pos: (3, 9, 1, -1),
+            vel: (1, -1, 0, 1),
+        };
+        assert_eq!((4, 8, 1, 0), debris.at(1, &(10, 15, 60)));
+        assert_eq!((5, 7, 1, 1), debris.at(2, &(10, 15, 60)));
+        assert_eq!((6, 6, 1, -1), debris.at(3, &(10, 15, 60)));
+        assert_eq!((0, 2, 1, 0), debris.at(7, &(10, 15, 60)));
     }
 }
